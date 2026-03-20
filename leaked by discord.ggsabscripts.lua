@@ -3032,6 +3032,165 @@ task.spawn(function()
         if pr then attemptSteal(pr, tp.uid) end
     end)
 
+    -- ── STEAL PROGRESS FLOATING GUI ─────────────────────────────────────
+    local stealProgressGui = Instance.new("ScreenGui")
+    stealProgressGui.Name = "XiStealProgress"
+    stealProgressGui.ResetOnSpawn = false
+    stealProgressGui.Parent = PlayerGui
+    stealProgressGui.Enabled = true
+
+    local spFrame = Instance.new("Frame")
+    spFrame.Size = UDim2.new(0, 260, 0, 54)
+    spFrame.Position = UDim2.new(0.5, 0, 0, 68)
+    spFrame.AnchorPoint = Vector2.new(0.5, 0)
+    spFrame.BackgroundColor3 = Color3.fromRGB(6, 4, 18)
+    spFrame.BackgroundTransparency = 0.08
+    spFrame.BorderSizePixel = 0
+    spFrame.Parent = stealProgressGui
+    Instance.new("UICorner", spFrame).CornerRadius = UDim.new(0, 12)
+    MakeDraggable(spFrame, spFrame)
+
+    local spStroke = Instance.new("UIStroke", spFrame)
+    spStroke.Thickness = 1.5
+    spStroke.Color = Color3.fromRGB(124, 58, 237)
+    spStroke.Transparency = 0.3
+    task.spawn(function()
+        local cols = {
+            Color3.fromRGB(124, 58, 237),
+            Color3.fromRGB(219, 39, 119),
+            Color3.fromRGB(6, 182, 212),
+        }
+        local ci = 1
+        while spStroke.Parent do
+            TweenService:Create(spStroke, TweenInfo.new(1.5, Enum.EasingStyle.Sine), {Color = cols[ci]}):Play()
+            ci = (ci % #cols) + 1
+            task.wait(1.5)
+        end
+    end)
+
+    -- Top row: target name + percentage label
+    local spNameLabel = Instance.new("TextLabel", spFrame)
+    spNameLabel.Size = UDim2.new(0.7, 0, 0, 20)
+    spNameLabel.Position = UDim2.new(0, 10, 0, 6)
+    spNameLabel.BackgroundTransparency = 1
+    spNameLabel.Font = Enum.Font.GothamBold
+    spNameLabel.TextSize = 12
+    spNameLabel.TextColor3 = Color3.fromRGB(200, 190, 240)
+    spNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    spNameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+    spNameLabel.Text = "Searching..."
+
+    local spPctLabel = Instance.new("TextLabel", spFrame)
+    spPctLabel.Size = UDim2.new(0.28, 0, 0, 20)
+    spPctLabel.Position = UDim2.new(0.72, 0, 0, 6)
+    spPctLabel.BackgroundTransparency = 1
+    spPctLabel.Font = Enum.Font.GothamBlack
+    spPctLabel.TextSize = 13
+    spPctLabel.TextColor3 = Color3.fromRGB(52, 211, 153)
+    spPctLabel.TextXAlignment = Enum.TextXAlignment.Right
+    spPctLabel.Text = "0%"
+
+    -- Progress track
+    local spTrack = Instance.new("Frame", spFrame)
+    spTrack.Size = UDim2.new(1, -20, 0, 8)
+    spTrack.Position = UDim2.new(0, 10, 0, 32)
+    spTrack.BackgroundColor3 = Color3.fromRGB(20, 12, 40)
+    spTrack.BorderSizePixel = 0
+    Instance.new("UICorner", spTrack).CornerRadius = UDim.new(1, 0)
+
+    local spFill = Instance.new("Frame", spTrack)
+    spFill.Size = UDim2.new(0, 0, 1, 0)
+    spFill.BackgroundColor3 = Color3.fromRGB(124, 58, 237)
+    spFill.BorderSizePixel = 0
+    Instance.new("UICorner", spFill).CornerRadius = UDim.new(1, 0)
+
+    local spGrad = Instance.new("UIGradient", spFill)
+    spGrad.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(124, 58, 237)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(219, 39, 119)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 182, 212))
+    }
+
+    -- Keep spFill in sync with the actual progressBarFill
+-- Counting percentage display
+    -- Simple counting display independent of steal bar
+    local countNum = 0
+    local counting = false
+
+    task.spawn(function()
+        while spFrame.Parent do
+            task.wait(0.05)
+            -- Update pet name
+            local ct = SharedState.SelectedPetData
+            spNameLabel.Text = ct and (ct.petName or "Searching...") or (autoStealEnabled and "Searching..." or "Disabled")
+        end
+    end)
+
+    -- Watch for steal starting and count 0-100 over STEAL_DURATION seconds
+    local lastReady = true
+    RunService.Heartbeat:Connect(function()
+        if not progressBarFill or not progressBarFill.Parent then return end
+
+        local isActive = progressBarFill.Size.X.Scale > 0.01 or instantStealEnabled
+
+        -- Detect new steal starting (bar reset to 0 then started growing)
+        local currentScale = progressBarFill.Size.X.Scale
+        if instantStealEnabled then
+            if not counting then
+                counting = true
+                countNum = 0
+                task.spawn(function()
+                    while counting and spFrame.Parent do
+                        countNum = (countNum + 3) % 101
+                        spPctLabel.Text = tostring(math.floor(countNum)) .. "%"
+                        spFill.Size = UDim2.new(countNum / 100, 0, 1, 0)
+                        task.wait(0.03)
+                    end
+                end)
+            end
+        else
+            if currentScale < 0.02 and not lastReady then
+                -- bar just reset, start new count
+                counting = false
+                task.wait(0.05)
+                counting = true
+                countNum = 0
+                task.spawn(function()
+                    local startTime = tick()
+                    while counting and spFrame.Parent do
+                        local elapsed = tick() - startTime
+                        countNum = math.min((elapsed / STEAL_DURATION) * 100, 100)
+                        local pctInt = math.floor(countNum)
+                        spPctLabel.Text = tostring(pctInt) .. "%"
+                        spFill.Size = UDim2.new(countNum / 100, 0, 1, 0)
+                        if pctInt >= 100 then
+                            spPctLabel.TextColor3 = Color3.fromRGB(52, 211, 153)
+                            spGrad.Color = ColorSequence.new{
+                                ColorSequenceKeypoint.new(0, Color3.fromRGB(16, 185, 129)),
+                                ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 182, 212))
+                            }
+                            counting = false
+                            break
+                        else
+                            spPctLabel.TextColor3 = Color3.fromRGB(196, 181, 253)
+                            spGrad.Color = ColorSequence.new{
+                                ColorSequenceKeypoint.new(0, Color3.fromRGB(124, 58, 237)),
+                                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(219, 39, 119)),
+                                ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 182, 212))
+                            }
+                        end
+                        task.wait(0.016)
+                    end
+                end)
+            end
+            if currentScale < 0.02 then
+                lastReady = true
+            else
+                lastReady = false
+            end
+        end
+    end)
+
     task.spawn(function() while task.wait(0.5) do updateUI(autoStealEnabled, get_all_pets()) end end)
     task.delay(1, function() SharedState.ListNeedsRedraw = true; updateUI(autoStealEnabled, get_all_pets()) end)
     task.spawn(function() while true do SharedState.AllAnimalsCache = allAnimalsCache; task.wait(0.5) end end)
@@ -5477,8 +5636,11 @@ CreateToggleSwitch(rHideAutoSteal, Config.HideAutoSteal, function(ns, set)
     set(ns); Config.HideAutoSteal = ns; SaveConfig()
     local asUI = PlayerGui:FindFirstChild("AutoStealUI")
     if asUI then asUI.Enabled = not ns end
+    local spUI = PlayerGui:FindFirstChild("XiStealProgress")
+    if spUI then spUI.Enabled = not ns end
     ShowNotification("HIDE AUTO STEAL", ns and "ENABLED" or "DISABLED")
 end)
+
 local rCompactAutoSteal = CreateRow("Compact Auto Steal GUI")
 CreateToggleSwitch(rCompactAutoSteal, Config.CompactAutoSteal, function(ns, set)
     set(ns); Config.CompactAutoSteal = ns; SaveConfig()
@@ -7349,193 +7511,146 @@ task.spawn(function()
     if IS_MOBILE then return end
     if PlayerGui:FindFirstChild("XiStatusHUD") then PlayerGui.XiStatusHUD:Destroy() end
 
-    local HTheme = {
-        Background = Color3.fromRGB(15,17,22),
-        Accent1 = Color3.fromRGB(0,225,255),
-        Accent2 = Color3.fromRGB(170,0,255),
-        White   = Color3.fromRGB(235,235,245),
-        Gray    = Color3.fromRGB(130,130,145),
-    }
-
-    local SCALE = 1
-    local TOPBAR_H = 50 * SCALE
-
     local gui = Instance.new("ScreenGui")
     gui.Name = "XiStatusHUD"
     gui.ResetOnSpawn = false
     gui.Parent = PlayerGui
 
+    local SCALE = 1
+    local BAR_W = 520 * SCALE
+    local BAR_H = 44 * SCALE
+
     local main = Instance.new("Frame")
     main.Name = "Main"
-    main.Size = UDim2.new(0, 500*SCALE, 0, TOPBAR_H)
-    main.Position = UDim2.new(0.5, 0, 0, 20)
+    main.Size = UDim2.new(0, BAR_W, 0, BAR_H)
+    main.Position = UDim2.new(0.5, 0, 0, 18)
     main.AnchorPoint = Vector2.new(0.5, 0)
-    main.BackgroundColor3 = Color3.fromRGB(20,22,28)
-    main.BackgroundTransparency = 0.15
+    main.BackgroundColor3 = Color3.fromRGB(8, 6, 20)
+    main.BackgroundTransparency = 0.1
     main.BorderSizePixel = 0
     main.Parent = gui
-    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 16)
+    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
 
-    local bgGradient = Instance.new("UIGradient", main)
-    bgGradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(20,22,28)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(25,27,35))
-    }
-    bgGradient.Rotation = 45
-
-    local stroke = Instance.new("UIStroke", main)
-    stroke.Thickness = 2
-    stroke.Transparency = 0.3
-
-    local strokeGrad = Instance.new("UIGradient", stroke)
-    strokeGrad.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, HTheme.Accent1),
-        ColorSequenceKeypoint.new(0.5, HTheme.Accent2),
-        ColorSequenceKeypoint.new(1, HTheme.Accent1)
-    }
-    strokeGrad.Rotation = 0
-
+    local mainStroke = Instance.new("UIStroke", main)
+    mainStroke.Thickness = 1.5
+    mainStroke.Color = Color3.fromRGB(124, 58, 237)
+    mainStroke.Transparency = 0.3
     task.spawn(function()
-        while stroke.Parent do
-            strokeGrad.Rotation = strokeGrad.Rotation + 1
-            task.wait(0.05)
+        local cols = {
+            Color3.fromRGB(124, 58, 237),
+            Color3.fromRGB(219, 39, 119),
+            Color3.fromRGB(6, 182, 212),
+            Color3.fromRGB(124, 58, 237),
+        }
+        local i = 1
+        while mainStroke.Parent do
+            TweenService:Create(mainStroke, TweenInfo.new(1.5, Enum.EasingStyle.Sine), {Color = cols[i]}):Play()
+            i = (i % #cols) + 1
+            task.wait(1.5)
         end
     end)
 
-    local topBar = Instance.new("Frame")
-    topBar.Name = "TopBar"
-    topBar.Size = UDim2.new(1, 0, 0, TOPBAR_H)
-    topBar.Position = UDim2.new(0, 0, 0, 0)
-    topBar.BackgroundTransparency = 1
-    topBar.Parent = main
-
-    local accentBar = Instance.new("Frame", topBar)
-    accentBar.Size = UDim2.new(0, 4, 0, 30*SCALE)
-    accentBar.Position = UDim2.new(0, 12*SCALE, 0.5, 0)
-    accentBar.AnchorPoint = Vector2.new(0, 0.5)
-    accentBar.BackgroundColor3 = HTheme.Accent1
-    accentBar.BorderSizePixel = 0
-    Instance.new("UICorner", accentBar).CornerRadius = UDim.new(0, 2)
-
-    local accentGrad = Instance.new("UIGradient", accentBar)
+    -- Left accent bar
+    local accent = Instance.new("Frame", main)
+    accent.Size = UDim2.new(0, 3, 0, 26)
+    accent.Position = UDim2.new(0, 10, 0.5, 0)
+    accent.AnchorPoint = Vector2.new(0, 0.5)
+    accent.BackgroundColor3 = Color3.fromRGB(124, 58, 237)
+    accent.BorderSizePixel = 0
+    Instance.new("UICorner", accent).CornerRadius = UDim.new(0, 2)
+    local accentGrad = Instance.new("UIGradient", accent)
     accentGrad.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, HTheme.Accent1),
-        ColorSequenceKeypoint.new(1, HTheme.Accent2)
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(124, 58, 237)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 182, 212))
     }
     accentGrad.Rotation = 90
 
-    local title = Instance.new("TextLabel", topBar)
-    if privateBuild then
-        title.Text = "LETHALHUB PRIVATE"
-    else
-        title.Text = "Light Hub"
-    end
+    -- Title
+    local title = Instance.new("TextLabel", main)
+    title.Text = privateBuild and "LETHALHUB PRIVATE" or "Lethal Hub"
     title.Font = Enum.Font.GothamBlack
-    title.TextSize = 20*SCALE
-    title.TextColor3 = HTheme.White
+    title.TextSize = 18 * SCALE
+    title.TextColor3 = Color3.fromRGB(235, 235, 245)
     title.BackgroundTransparency = 1
     title.AutomaticSize = Enum.AutomaticSize.X
-    title.Position = UDim2.new(0, 28*SCALE, 0.5, 0)
+    title.Position = UDim2.new(0, 22, 0.5, 0)
     title.AnchorPoint = Vector2.new(0, 0.5)
     title.TextStrokeTransparency = 0.8
-    title.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+    title.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 
-    local shinyGradient = Instance.new("UIGradient", title)
-    shinyGradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, HTheme.White),
-        ColorSequenceKeypoint.new(0.3, HTheme.White),
-        ColorSequenceKeypoint.new(0.45, HTheme.Accent1),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(0.55, HTheme.Accent1),
-        ColorSequenceKeypoint.new(0.7, HTheme.White),
-        ColorSequenceKeypoint.new(1, HTheme.White)
+    local shinyGrad = Instance.new("UIGradient", title)
+    shinyGrad.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(235,235,245)),
+        ColorSequenceKeypoint.new(0.4, Color3.fromRGB(235,235,245)),
+        ColorSequenceKeypoint.new(0.48, Color3.fromRGB(124, 58, 237)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255,255,255)),
+        ColorSequenceKeypoint.new(0.52, Color3.fromRGB(124, 58, 237)),
+        ColorSequenceKeypoint.new(0.6, Color3.fromRGB(235,235,245)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(235,235,245)),
     }
-    shinyGradient.Transparency = NumberSequence.new{
-        NumberSequenceKeypoint.new(0, 0),
-        NumberSequenceKeypoint.new(0.3, 0),
-        NumberSequenceKeypoint.new(0.45, 0),
-        NumberSequenceKeypoint.new(0.5, 0),
-        NumberSequenceKeypoint.new(0.55, 0),
-        NumberSequenceKeypoint.new(0.7, 0),
-        NumberSequenceKeypoint.new(1, 0)
-    }
-    shinyGradient.Rotation = 30
-    shinyGradient.Offset = Vector2.new(-1.5, 0)
-
+    shinyGrad.Rotation = 30
+    shinyGrad.Offset = Vector2.new(-1.5, 0)
     task.spawn(function()
         while title.Parent do
             task.wait(3)
-            shinyGradient.Offset = Vector2.new(-1.5, 0)
-            local tw = TweenService:Create(
-                shinyGradient,
-                TweenInfo.new(0.8, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut),
-                { Offset = Vector2.new(1.5, 0) }
-            )
-            tw:Play()
-            tw.Completed:Wait()
+            shinyGrad.Offset = Vector2.new(-1.5, 0)
+            local tw = TweenService:Create(shinyGrad, TweenInfo.new(0.7, Enum.EasingStyle.Linear), {Offset = Vector2.new(1.5, 0)})
+            tw:Play(); tw.Completed:Wait()
         end
     end)
 
-    local author = Instance.new("TextLabel", topBar)
-    if privateBuild then
-        author.Text = ""
-    else
-        author.Text = "discord.gg/knockknock"
-    end
-    author.Font = Enum.Font.GothamBold
-    author.TextSize = 12*SCALE
-    author.TextColor3 = HTheme.Gray
-    author.BackgroundTransparency = 1
-    author.AutomaticSize = Enum.AutomaticSize.X
-    author.Position = UDim2.new(0, 165*SCALE, 0.5, 0)
-    author.AnchorPoint = Vector2.new(0, 0.5)
-    author.TextTransparency = 0.2
+    -- Discord text
+    local discord = Instance.new("TextLabel", main)
+    discord.Text = privateBuild and "" or "discord.gg/lethalhub"
+    discord.Font = Enum.Font.GothamBold
+    discord.TextSize = 11 * SCALE
+    discord.TextColor3 = Color3.fromRGB(130, 130, 145)
+    discord.BackgroundTransparency = 1
+    discord.AutomaticSize = Enum.AutomaticSize.X
+    discord.Position = UDim2.new(0, 168, 0.5, 0)
+    discord.AnchorPoint = Vector2.new(0, 0.5)
+    discord.TextTransparency = 0.2
 
-    local separator = Instance.new("Frame", topBar)
-    separator.Size = UDim2.new(0, 1, 0, 20*SCALE)
-    separator.Position = UDim2.new(0, 280*SCALE, 0.5, 0)
-    separator.AnchorPoint = Vector2.new(0, 0.5)
-    separator.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    separator.BackgroundTransparency = 1
-    separator.BorderSizePixel = 0
+    -- Divider
+    local div = Instance.new("Frame", main)
+    div.Size = UDim2.new(0, 1, 0, 22)
+    div.Position = UDim2.new(1, -230, 0.5, 0)
+    div.AnchorPoint = Vector2.new(0, 0.5)
+    div.BackgroundColor3 = Color3.fromRGB(60, 50, 80)
+    div.BorderSizePixel = 0
 
-    local statsContainer = Instance.new("Frame", topBar)
-    statsContainer.Size = UDim2.new(0, 200*SCALE, 1, 0)
-    statsContainer.Position = UDim2.new(1, -20*SCALE, 0, 0)
-    statsContainer.AnchorPoint = Vector2.new(1, 0)
-    statsContainer.BackgroundTransparency = 1
-
-    local stats = Instance.new("TextLabel", statsContainer)
-    stats.Size = UDim2.new(1, 0, 1, 0)
-    stats.Position = UDim2.new(0, 0, 0, 0)
+    -- Right stats
+    local stats = Instance.new("TextLabel", main)
+    stats.Size = UDim2.new(0, 220, 1, 0)
+    stats.Position = UDim2.new(1, -225, 0, 0)
     stats.BackgroundTransparency = 1
     stats.Font = Enum.Font.GothamBold
-    stats.TextSize = 13*SCALE
+    stats.TextSize = 13 * SCALE
     stats.TextXAlignment = Enum.TextXAlignment.Right
-    stats.TextColor3 = HTheme.White
+    stats.TextColor3 = Color3.fromRGB(235, 235, 245)
     stats.RichText = true
     stats.TextYAlignment = Enum.TextYAlignment.Center
 
     local acc, rate, lastFps = 0, 1, 60
     RunService.Heartbeat:Connect(function(dt)
-        acc =acc+ dt
-        if acc >= rate then
-            lastFps = math.floor(1/dt)
-            acc = 0
-        end
+        acc = acc + dt
+        if acc >= rate then lastFps = math.floor(1/dt); acc = 0 end
         local ping = math.floor(LocalPlayer:GetNetworkPing() * 1000)
-        local fc = (lastFps >= 50) and "rgb(0,255,120)" or (lastFps >= 30) and "rgb(255,200,0)" or "rgb(255,70,70)"
-        local pc = (ping < 100) and "rgb(0,255,120)" or (ping < 200) and "rgb(255,200,0)" or "rgb(255,70,70)"
+        local fc = lastFps >= 50 and "rgb(0,255,120)" or lastFps >= 30 and "rgb(255,200,0)" or "rgb(255,70,70)"
+        local pc = ping < 100 and "rgb(0,255,120)" or ping < 200 and "rgb(255,200,0)" or "rgb(255,70,70)"
+        local desyncOn = Config.DesyncOnSteal or Config.AutoDesync
+        local dc = desyncOn and "rgb(0,220,255)" or "rgb(200,80,80)"
+        local dText = desyncOn and "ON" or "OFF"
         stats.Text = string.format(
-            "<font color='rgb(180,180,190)'>FPS:</font> <font color='%s'><b>%d</b></font>  <font color='rgb(180,180,190)'>PING:</font> <font color='%s'><b>%dms</b></font>",
-            fc, lastFps, pc, ping
+            "<font color='rgb(140,130,170)'>FPS:</font> <font color='%s'><b>%d</b></font>  <font color='rgb(140,130,170)'>PING:</font> <font color='%s'><b>%dms</b></font>  <font color='rgb(140,130,170)'>Desync:</font> <font color='%s'><b>%s</b></font>",
+            fc, lastFps, pc, ping, dc, dText
         )
     end)
 
     local unlockContainer = Instance.new("Frame", main)
     unlockContainer.Name = "UnlockButtonsContainer"
     unlockContainer.Size = UDim2.new(0, 150*SCALE, 0, 40*SCALE)
-    unlockContainer.Position = UDim2.new(0.5, 0, 0, TOPBAR_H + 5*SCALE)
+    unlockContainer.Position = UDim2.new(0.5, 0, 0, BAR_H + 5*SCALE)
     unlockContainer.AnchorPoint = Vector2.new(0.5, 0)
     unlockContainer.BackgroundTransparency = 1
     unlockContainer.Visible = Config.ShowUnlockButtonsHUD or false
@@ -7545,37 +7660,24 @@ task.spawn(function()
         local btn = Instance.new("TextButton", unlockContainer)
         btn.Size = UDim2.new(0, 40*SCALE, 0, 40*SCALE)
         btn.Position = UDim2.new(0, (i-1)*50*SCALE + 5*SCALE, 0, 0)
-        btn.BackgroundColor3 = HTheme.Background
+        btn.BackgroundColor3 = Color3.fromRGB(15, 17, 22)
         btn.BackgroundTransparency = 0.2
         btn.Text = tostring(i)
         btn.Font = Enum.Font.GothamBlack
         btn.TextSize = 16*SCALE
-        btn.TextColor3 = HTheme.White
+        btn.TextColor3 = Color3.fromRGB(235, 235, 245)
         btn.BorderSizePixel = 0
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-
         local btnStroke = Instance.new("UIStroke", btn)
         btnStroke.Color = Color3.fromRGB(33,153,156)
-        btnStroke.Thickness = 2
-        btnStroke.Transparency = 0.3
-
-        btn.MouseEnter:Connect(function()
-            btn.BackgroundTransparency = 0.05
-            btnStroke.Transparency = 0.1
-        end)
-        btn.MouseLeave:Connect(function()
-            btn.BackgroundTransparency = 0.2
-            btnStroke.Transparency = 0.3
-        end)
-
-        btn.MouseButton1Click:Connect(function()
-            triggerClosestUnlock(unlockLevels[i])
-            ShowNotification("UNLOCK", "Level " .. i)
-        end)
+        btnStroke.Thickness = 2; btnStroke.Transparency = 0.3
+        btn.MouseEnter:Connect(function() btn.BackgroundTransparency = 0.05; btnStroke.Transparency = 0.1 end)
+        btn.MouseLeave:Connect(function() btn.BackgroundTransparency = 0.2; btnStroke.Transparency = 0.3 end)
+        btn.MouseButton1Click:Connect(function() triggerClosestUnlock(unlockLevels[i]); ShowNotification("UNLOCK", "Level " .. i) end)
     end
 
     if Config.ShowUnlockButtonsHUD then
-        main.Size = UDim2.new(0, 500*SCALE, 0, 100*SCALE)
+        main.Size = UDim2.new(0, BAR_W, 0, BAR_H + 50*SCALE)
         unlockContainer.Visible = true
     end
 end)
@@ -8637,12 +8739,4 @@ task.spawn(function()
     clearBtn.MouseButton1Click:Connect(function()
         idBox.Text = ""
     end)
-end)
-
-raknet.add_send_hook(function(packet)
-    if packet.PacketId == 0x1B then
-        local data = packet.AsBuffer
-        buffer.writeu32(data, 1, 0xFFFFFFFF)
-        packet:SetData(data)
-    end
 end)
