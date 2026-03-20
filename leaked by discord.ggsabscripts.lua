@@ -3966,11 +3966,11 @@ end
         btnCont.BackgroundTransparency = 1
         btnCont.ZIndex = 10
 
-        local buttonsDef = {
-            {icon = "R", cmd = "rocket"},
-            {icon = "R", cmd = "ragdoll"},
-            {icon = "L", cmd = "jail"},
-            {icon = "B", cmd = "balloon"}
+       local buttonsDef = {
+            {icon = "🚀", cmd = "rocket"},
+            {icon = "🏃", cmd = "ragdoll"},
+            {icon = "🔒", cmd = "jail"},
+            {icon = "🎈", cmd = "balloon"}
         }
 
         for i, def in ipairs(buttonsDef) do
