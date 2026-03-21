@@ -2526,7 +2526,7 @@ task.spawn(function()
         return nil
     end
 
-    local STEAL_DURATION = 1.2
+    local STEAL_DURATION = 0.6
 
     local function buildStealCallbacks(prompt)
         if InternalStealCache[prompt] then return end
