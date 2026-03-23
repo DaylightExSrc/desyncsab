@@ -7202,7 +7202,7 @@ task.spawn(function()
     local main = Instance.new("Frame")
     main.Name = "Main"
     main.Size = UDim2.new(0, BAR_W, 0, BAR_H)
-    main.Position = UDim2.new(0.5, 0, 0, 18)
+    main.Position = UDim2.new(0.5, 0, 1, -62)
     main.AnchorPoint = Vector2.new(0.5, 0)
     main.BackgroundColor3 = Color3.fromRGB(8, 6, 20)
     main.BackgroundTransparency = 0.1
