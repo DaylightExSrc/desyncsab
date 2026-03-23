@@ -2082,6 +2082,105 @@ task.spawn(function()
     modeRow2.Size = UDim2.new(1, 0, 0, 0) -- hidden, modes are in top row
     modeRow2.BackgroundTransparency = 1
 
+
+-- ─────────────────────────────────────────────────────────────────────
+-- PART 2 — STEAL HELPER: KICK + REJOIN BUTTONS
+-- ─────────────────────────────────────────────────────────────────────
+--[[
+  Inside the steal-helper task.spawn, find the bottomRow frame
+  (the one that holds customizePriorityBtn and instantStealBtn).
+  AFTER that block, add the following code.
+  It creates a 3rd row in toggleBtnContainer for Kick and Rejoin.
+]]
+ 
+-- Add this right after instantStealBtn is defined, still inside toggleBtnContainer:
+ 
+local kickRejoinRow = Instance.new("Frame", toggleBtnContainer)
+kickRejoinRow.Size = UDim2.new(1, 0, 0, 26)
+kickRejoinRow.Position = UDim2.new(0, 0, 0, 68)   -- below the two existing rows
+kickRejoinRow.BackgroundTransparency = 1
+ 
+-- KICK button
+local kickBtn = Instance.new("TextButton", kickRejoinRow)
+kickBtn.Size = UDim2.new(0.48, 0, 1, 0)
+kickBtn.BackgroundColor3 = Color3.fromRGB(40, 10, 20)
+kickBtn.AutoButtonColor = false
+kickBtn.Text = "🥾 KICK"
+kickBtn.Font = Enum.Font.GothamBold
+kickBtn.TextSize = 9
+kickBtn.TextColor3 = Color3.fromRGB(239, 68, 68)
+Instance.new("UICorner", kickBtn).CornerRadius = UDim.new(0, 7)
+local kickStroke = Instance.new("UIStroke", kickBtn)
+kickStroke.Thickness = 1
+kickStroke.Color = Color3.fromRGB(239, 68, 68)
+kickStroke.Transparency = 0.4
+ 
+kickBtn.MouseEnter:Connect(function()
+    TweenService:Create(kickBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(80, 15, 30)}):Play()
+    TweenService:Create(kickStroke, TweenInfo.new(0.15), {Transparency = 0.1}):Play()
+end)
+kickBtn.MouseLeave:Connect(function()
+    TweenService:Create(kickBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(40, 10, 20)}):Play()
+    TweenService:Create(kickStroke, TweenInfo.new(0.15), {Transparency = 0.4}):Play()
+end)
+kickBtn.MouseButton1Click:Connect(function()
+    kickPlayer()
+    ShowNotification("KICK", "Kicking yourself...")
+end)
+ 
+-- REJOIN button
+local rejoinBtn = Instance.new("TextButton", kickRejoinRow)
+rejoinBtn.Size = UDim2.new(0.48, 0, 1, 0)
+rejoinBtn.Position = UDim2.new(0.52, 0, 0, 0)
+rejoinBtn.BackgroundColor3 = Color3.fromRGB(10, 25, 40)
+rejoinBtn.AutoButtonColor = false
+rejoinBtn.Text = "🔄 REJOIN"
+rejoinBtn.Font = Enum.Font.GothamBold
+rejoinBtn.TextSize = 9
+rejoinBtn.TextColor3 = Color3.fromRGB(6, 182, 212)
+Instance.new("UICorner", rejoinBtn).CornerRadius = UDim.new(0, 7)
+local rejoinStroke = Instance.new("UIStroke", rejoinBtn)
+rejoinStroke.Thickness = 1
+rejoinStroke.Color = Color3.fromRGB(6, 182, 212)
+rejoinStroke.Transparency = 0.4
+ 
+rejoinBtn.MouseEnter:Connect(function()
+    TweenService:Create(rejoinBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(10, 45, 65)}):Play()
+    TweenService:Create(rejoinStroke, TweenInfo.new(0.15), {Transparency = 0.1}):Play()
+end)
+rejoinBtn.MouseLeave:Connect(function()
+    TweenService:Create(rejoinBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(10, 25, 40)}):Play()
+    TweenService:Create(rejoinStroke, TweenInfo.new(0.15), {Transparency = 0.4}):Play()
+end)
+rejoinBtn.MouseButton1Click:Connect(function()
+    ShowNotification("REJOIN", "Rejoining server...")
+    task.spawn(function()
+        task.wait(0.3)
+        local TeleportService_local = game:GetService("TeleportService")
+        local success, err = pcall(function()
+            TeleportService_local:TeleportToPlaceInstance(
+                game.PlaceId,
+                game.JobId,
+                LocalPlayer
+            )
+        end)
+        if not success then
+            -- fallback: teleport to same place (new server)
+            pcall(function()
+                TeleportService_local:Teleport(game.PlaceId, LocalPlayer)
+            end)
+        end
+    end)
+end)
+ 
+-- Expand toggleBtnContainer height to accommodate the new row
+toggleBtnContainer.Size = UDim2.new(1, -24, 0, 100)
+ 
+-- Also push the outer frame up slightly so the new row fits
+-- (the frame was 640 tall; kick/rejoin row adds ~32px)
+-- This line adjusts the steal helper frame height:
+frame.Size = UDim2.new(frame.Size.X.Scale, frame.Size.X.Offset, 0, 670 * (IS_MOBILE and 0.6 or 1))
+
     -- ── UPDATE UI FUNCTION ────────────────────────────────────────────────
     local petButtons = {}
 
@@ -4982,285 +5081,333 @@ if IS_MOBILE then
 end
 
 settingsGui = Instance.new("ScreenGui")
-settingsGui.Name = "SettingsUI"; settingsGui.ResetOnSpawn = false
-settingsGui.Parent = PlayerGui; settingsGui.Enabled = false
-
+settingsGui.Name = "SettingsUI"
+settingsGui.ResetOnSpawn = false
+settingsGui.Parent = PlayerGui
+settingsGui.Enabled = true
+ 
+-- Root frame
 local sFrame = Instance.new("Frame")
-sFrame.Size = UDim2.new(0, 300, 0, 650)
+sFrame.Name = "sFrame"
+sFrame.Size = UDim2.new(0, 330, 0, 540)
 sFrame.Position = UDim2.new(Config.Positions.Settings.X, 0, Config.Positions.Settings.Y, 0)
-sFrame.BackgroundColor3 = Theme.Background; sFrame.BackgroundTransparency = 0.05
-sFrame.BorderSizePixel = 0; sFrame.ClipsDescendants = true; sFrame.Parent = settingsGui
-
-ApplyViewportUIScale(sFrame, 300, 650, 0.45, 0.85)
+sFrame.BackgroundColor3 = Color3.fromRGB(8, 6, 22)
+sFrame.BackgroundTransparency = 0.04
+sFrame.BorderSizePixel = 0
+sFrame.ClipsDescendants = true
+sFrame.Parent = settingsGui
+Instance.new("UICorner", sFrame).CornerRadius = UDim.new(0, 14)
+ 
+ApplyViewportUIScale(sFrame, 330, 540, 0.45, 0.85)
 AddMobileMinimize(sFrame, "SETTINGS")
-
-Instance.new("UICorner", sFrame).CornerRadius = UDim.new(0, 12)
+ 
 local sStroke = Instance.new("UIStroke", sFrame)
 sStroke.Color = Theme.Accent2; sStroke.Thickness = 1.5; sStroke.Transparency = 0.4
 CreateGradient(sStroke)
-
-
+ 
+-- Header bar (drag handle + title)
 local sHeader = Instance.new("Frame", sFrame)
-sHeader.Size = UDim2.new(1,0,0,40); sHeader.BackgroundTransparency = 1
-MakeDraggable(sHeader, sFrame, "Settings") 
+sHeader.Size = UDim2.new(1, 0, 0, 44)
+sHeader.BackgroundColor3 = Color3.fromRGB(124, 58, 237)
+sHeader.BackgroundTransparency = 0.86
+sHeader.BorderSizePixel = 0
+MakeDraggable(sHeader, sFrame, "Settings")
+ 
+local sHeaderGrad = Instance.new("UIGradient", sHeader)
+sHeaderGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(124,58,237)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(219,39,119))
+}
+sHeaderGrad.Transparency = NumberSequence.new{
+    NumberSequenceKeypoint.new(0, 0.76),
+    NumberSequenceKeypoint.new(1, 0.91)
+}
+ 
 local sTitle = Instance.new("TextLabel", sHeader)
-sTitle.Size = UDim2.new(1,-20,1,0); sTitle.Position = UDim2.new(0,15,0,0)
-sTitle.BackgroundTransparency = 1; sTitle.Text = "SETTINGS"
-sTitle.Font = Enum.Font.GothamBlack; sTitle.TextSize = 16
-sTitle.TextColor3 = Theme.TextPrimary; sTitle.TextXAlignment = Enum.TextXAlignment.Left
-
+sTitle.Size = UDim2.new(0.6, 0, 1, 0)
+sTitle.Position = UDim2.new(0, 14, 0, 0)
+sTitle.BackgroundTransparency = 1
+sTitle.Text = "SETTINGS"
+sTitle.Font = Enum.Font.GothamBlack
+sTitle.TextSize = 15
+sTitle.TextColor3 = Color3.fromRGB(200, 180, 255)
+sTitle.TextXAlignment = Enum.TextXAlignment.Left
+ 
+-- discord tag
+local sDisc = Instance.new("TextLabel", sHeader)
+sDisc.Size = UDim2.new(0.38, 0, 1, 0)
+sDisc.Position = UDim2.new(0.62, 0, 0, 0)
+sDisc.BackgroundTransparency = 1
+sDisc.Text = "discord.gg/lethalhub"
+sDisc.Font = Enum.Font.GothamMedium
+sDisc.TextSize = 9
+sDisc.TextColor3 = Color3.fromRGB(80, 90, 130)
+sDisc.TextXAlignment = Enum.TextXAlignment.Right
+ 
+-- ── TAB BAR ──────────────────────────────────────────────────────────
+local TAB_NAMES = {"General", "Movement", "Visuals", "Extras", "Admin"}
+local TAB_COLORS = {
+    General  = Color3.fromRGB(6, 182, 212),
+    Movement = Color3.fromRGB(16, 185, 129),
+    Visuals  = Color3.fromRGB(245, 158, 11),
+    Extras   = Color3.fromRGB(168, 85, 247),
+    Admin    = Color3.fromRGB(219, 39, 119),
+}
+ 
+local tabBar = Instance.new("Frame", sFrame)
+tabBar.Size = UDim2.new(1, -16, 0, 30)
+tabBar.Position = UDim2.new(0, 8, 0, 48)
+tabBar.BackgroundTransparency = 1
+ 
+local tabBarLayout = Instance.new("UIListLayout", tabBar)
+tabBarLayout.FillDirection = Enum.FillDirection.Horizontal
+tabBarLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+tabBarLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+tabBarLayout.Padding = UDim.new(0, 4)
+ 
+-- Underline indicator
+local tabUnderline = Instance.new("Frame", sFrame)
+tabUnderline.Size = UDim2.new(0, 58, 0, 2)
+tabUnderline.Position = UDim2.new(0, 8, 0, 77)
+tabUnderline.BackgroundColor3 = Color3.fromRGB(6, 182, 212)
+tabUnderline.BorderSizePixel = 0
+Instance.new("UICorner", tabUnderline).CornerRadius = UDim.new(1, 0)
+ 
+-- Scroll area (fills below tab bar)
 local sList = Instance.new("ScrollingFrame", sFrame)
-sList.Size = UDim2.new(1,-20,1,-50); sList.Position = UDim2.new(0,10,0,45)
-sList.BackgroundTransparency = 1; sList.BorderSizePixel = 0
-sList.ScrollBarThickness = 2; sList.ScrollBarImageColor3 = Theme.Accent1
-
+sList.Name = "sList"
+sList.Size = UDim2.new(1, -16, 1, -84)
+sList.Position = UDim2.new(0, 8, 0, 82)
+sList.BackgroundTransparency = 1
+sList.BorderSizePixel = 0
+sList.ScrollBarThickness = 3
+sList.ScrollBarImageColor3 = Theme.Accent1
+sList.CanvasSize = UDim2.new(0, 0, 0, 0)
+ 
 local sLayout = Instance.new("UIListLayout", sList)
-sLayout.Padding = UDim.new(0,8); sLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
+sLayout.Padding = UDim.new(0, 6)
+sLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ 
+-- Track all tab content frames
+local tabFrames = {}      -- tabFrames["General"] = {rows}
+local tabButtons = {}
+local currentTab = "General"
+ 
+-- ── SHARED ROW / TOGGLE FACTORIES ────────────────────────────────────
+ 
 local function CreateToggleSwitch(parent, initialState, callback)
     local sw = Instance.new("Frame")
     sw.Size = UDim2.new(0, 40, 0, 20)
     sw.Position = UDim2.new(1, -50, 0.5, -10)
-    sw.BackgroundColor3 = initialState and Color3.fromRGB(80, 20, 160) or Color3.fromRGB(22, 14, 55)
+    sw.BackgroundColor3 = initialState and Color3.fromRGB(80,20,160) or Color3.fromRGB(22,14,55)
     Instance.new("UICorner", sw).CornerRadius = UDim.new(1, 0)
     sw.Parent = parent
-
+ 
     local swStroke = Instance.new("UIStroke", sw)
     swStroke.Thickness = 1.5
-    swStroke.Color = initialState and Color3.fromRGB(124, 58, 237) or Color3.fromRGB(40, 30, 70)
+    swStroke.Color = initialState and Color3.fromRGB(124,58,237) or Color3.fromRGB(40,30,70)
     swStroke.Transparency = 0.3
-
+ 
     local dot = Instance.new("Frame")
-    dot.Size = UDim2.new(0, 14, 0, 14)
-    dot.Position = initialState and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
-    dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+    dot.Size = UDim2.new(0,14,0,14)
+    dot.Position = initialState and UDim2.new(1,-16,0.5,-7) or UDim2.new(0,3,0.5,-7)
+    dot.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    Instance.new("UICorner", dot).CornerRadius = UDim.new(1,0)
     dot.Parent = sw
-
+ 
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 1, 0)
+    btn.Size = UDim2.new(1,0,1,0)
     btn.BackgroundTransparency = 1
     btn.Text = ""
     btn.Parent = sw
-
+ 
     local isOn = initialState
-
     local function SetState(s)
         isOn = s
-        local tp = isOn and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
-        local bgColor = isOn and Color3.fromRGB(80, 20, 160) or Color3.fromRGB(22, 14, 55)
-        local strokeColor = isOn and Color3.fromRGB(124, 58, 237) or Color3.fromRGB(40, 30, 70)
-        TweenService:Create(dot, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = tp}):Play()
-        TweenService:Create(sw,  TweenInfo.new(0.2), {BackgroundColor3 = bgColor}):Play()
-        TweenService:Create(swStroke, TweenInfo.new(0.2), {Color = strokeColor}):Play()
+        local tp = isOn and UDim2.new(1,-16,0.5,-7) or UDim2.new(0,3,0.5,-7)
+        local bg = isOn and Color3.fromRGB(80,20,160) or Color3.fromRGB(22,14,55)
+        local sc = isOn and Color3.fromRGB(124,58,237) or Color3.fromRGB(40,30,70)
+        TweenService:Create(dot,  TweenInfo.new(0.25,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Position=tp}):Play()
+        TweenService:Create(sw,   TweenInfo.new(0.2),{BackgroundColor3=bg}):Play()
+        TweenService:Create(swStroke,TweenInfo.new(0.2),{Color=sc}):Play()
     end
-
     btn.MouseButton1Click:Connect(function() callback(not isOn, SetState) end)
     return {Set = SetState, Container = sw}
 end
-
-local function CreateRow(text, height)
+ 
+-- Each row belongs to a tab via LayoutOrder groups
+local tabRowOrder = {}   -- tabRowOrder["General"] = base order number
+local rowCounter = 0
+ 
+local function CreateRow(text, height, tabName)
+    rowCounter = rowCounter + 1
     local row = Instance.new("Frame")
-    row.Size = UDim2.new(1,0,0,height or 34); row.BackgroundColor3 = Theme.Surface
+    row.Size = UDim2.new(1,0,0,height or 34)
+    row.BackgroundColor3 = Theme.Surface
+    row.LayoutOrder = rowCounter
+    row.Visible = (tabName == currentTab)
     Instance.new("UICorner", row).CornerRadius = UDim.new(0,6)
     local lbl = Instance.new("TextLabel", row)
-    lbl.Size = UDim2.new(0.6,0,1,0); lbl.Position = UDim2.new(0,10,0,0)
-    lbl.BackgroundTransparency = 1; lbl.Text = text
-    lbl.Font = Enum.Font.GothamMedium; lbl.TextColor3 = Theme.TextPrimary
-    lbl.TextSize = 12; lbl.TextXAlignment = Enum.TextXAlignment.Left
-    row.Parent = sList; return row
-end
-
-local SECTION_COLORS = {
-    ["GENERAL"]              = Color3.fromRGB(6, 182, 212),
-    ["Auto TP"]              = Color3.fromRGB(219, 39, 119),
-    ["CARPET SPEED"]         = Color3.fromRGB(245, 158, 11),
-    ["MOVEMENT"]             = Color3.fromRGB(16, 185, 129),
-    ["AUTO UNLOCK"]          = Color3.fromRGB(99, 102, 241),
-    ["ANTI-RAGDOLL"]         = Color3.fromRGB(239, 68, 68),
-    ["ESP"]                  = Color3.fromRGB(245, 158, 11),
-    ["AUTO STEAL DEFAULTS"]  = Color3.fromRGB(124, 58, 237),
-    ["AUTOMATION"]           = Color3.fromRGB(6, 182, 212),
-    ["HIDE GUIS"]            = Color3.fromRGB(100, 116, 139),
-    ["EXTRAS"]               = Color3.fromRGB(168, 85, 247),
-    ["ADMIN PANEL"]          = Color3.fromRGB(219, 39, 119),
-    ["DESYNC"]               = Color3.fromRGB(6, 182, 212),
-    ["ALERTS"]               = Color3.fromRGB(245, 158, 11),
-    ["JOB JOINER"]           = Color3.fromRGB(16, 185, 129),
-    ["PROTECTION"]           = Color3.fromRGB(239, 68, 68),
-    ["CAMERA"]               = Color3.fromRGB(99, 102, 241),
-    ["MENU"]                 = Color3.fromRGB(148, 163, 184),
-    ["UI CONTROLS"]          = Color3.fromRGB(148, 163, 184),
-
-}
-local function CreateSectionHeader(text)
-    local accentColor = SECTION_COLORS[text] or Color3.fromRGB(6, 182, 212)
-
-    local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, 0, 0, 28)
-    row.BackgroundTransparency = 1
+    lbl.Size = UDim2.new(0.6,0,1,0)
+    lbl.Position = UDim2.new(0,10,0,0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.Font = Enum.Font.GothamMedium
+    lbl.TextColor3 = Theme.TextPrimary
+    lbl.TextSize = 12
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
     row.Parent = sList
-
+    if tabFrames[tabName] then
+        table.insert(tabFrames[tabName], row)
+    end
+    return row
+end
+ 
+local function CreateSectionHeader(text, tabName, accentColor)
+    accentColor = accentColor or TAB_COLORS[tabName] or Theme.Accent2
+    rowCounter = rowCounter + 1
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1,0,0,26)
+    row.BackgroundTransparency = 1
+    row.LayoutOrder = rowCounter
+    row.Visible = (tabName == currentTab)
+    row.Parent = sList
+    if tabFrames[tabName] then table.insert(tabFrames[tabName], row) end
+ 
     local dot = Instance.new("Frame", row)
-    dot.Size = UDim2.new(0, 7, 0, 7)
-    dot.Position = UDim2.new(0, 4, 0.5, -3)
+    dot.Size = UDim2.new(0,7,0,7)
+    dot.Position = UDim2.new(0,4,0.5,-3)
     dot.BackgroundColor3 = accentColor
     dot.BorderSizePixel = 0
-    Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
-
-    local dotStroke = Instance.new("UIStroke", dot)
-    dotStroke.Thickness = 1.5
-    dotStroke.Color = accentColor
-    dotStroke.Transparency = 0.3
-
+    Instance.new("UICorner", dot).CornerRadius = UDim.new(1,0)
     task.spawn(function()
         while dot.Parent do
-            TweenService:Create(dot, TweenInfo.new(1, Enum.EasingStyle.Sine), {
-                Size = UDim2.new(0, 9, 0, 9),
-                Position = UDim2.new(0, 3, 0.5, -4),
-            }):Play()
+            TweenService:Create(dot,TweenInfo.new(1,Enum.EasingStyle.Sine),{Size=UDim2.new(0,9,0,9),Position=UDim2.new(0,3,0.5,-4)}):Play()
             task.wait(1)
-            TweenService:Create(dot, TweenInfo.new(1, Enum.EasingStyle.Sine), {
-                Size = UDim2.new(0, 7, 0, 7),
-                Position = UDim2.new(0, 4, 0.5, -3),
-            }):Play()
+            TweenService:Create(dot,TweenInfo.new(1,Enum.EasingStyle.Sine),{Size=UDim2.new(0,7,0,7),Position=UDim2.new(0,4,0.5,-3)}):Play()
             task.wait(1)
         end
     end)
-
+ 
     local lbl = Instance.new("TextLabel", row)
-    lbl.Size = UDim2.new(1, -20, 1, 0)
-    lbl.Position = UDim2.new(0, 16, 0, 0)
+    lbl.Size = UDim2.new(1,-20,1,0)
+    lbl.Position = UDim2.new(0,16,0,0)
     lbl.BackgroundTransparency = 1
     lbl.Text = text
     lbl.TextColor3 = accentColor
     lbl.TextSize = 10
     lbl.Font = Enum.Font.GothamBlack
     lbl.TextXAlignment = Enum.TextXAlignment.Left
-
+ 
     local line = Instance.new("Frame", row)
-    line.Size = UDim2.new(1, -80, 0, 1)
-    line.Position = UDim2.new(0, 75, 0.5, 0)
+    line.Size = UDim2.new(1,-80,0,1)
+    line.Position = UDim2.new(0,75,0.5,0)
     line.BackgroundColor3 = accentColor
     line.BackgroundTransparency = 0.5
     line.BorderSizePixel = 0
-
-    local lineGrad = Instance.new("UIGradient", line)
-    lineGrad.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, accentColor),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(0,0,0))
-    }
-    lineGrad.Transparency = NumberSequence.new{
-        NumberSequenceKeypoint.new(0, 0),
-        NumberSequenceKeypoint.new(1, 1)
-    }
-
-    task.spawn(function()
-        while line.Parent do
-            TweenService:Create(lineGrad, TweenInfo.new(1.5, Enum.EasingStyle.Sine), {
-                Offset = Vector2.new(0.3, 0)
-            }):Play()
-            task.wait(1.5)
-            TweenService:Create(lineGrad, TweenInfo.new(1.5, Enum.EasingStyle.Sine), {
-                Offset = Vector2.new(-0.3, 0)
-            }):Play()
-            task.wait(1.5)
-        end
-    end)
-
+    local lg = Instance.new("UIGradient", line)
+    lg.Color = ColorSequence.new{ColorSequenceKeypoint.new(0,accentColor),ColorSequenceKeypoint.new(1,Color3.fromRGB(0,0,0))}
+    lg.Transparency = NumberSequence.new{NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(1,1)}
     return row
 end
-
-CreateRow("Auto TP on Script Load")
-CreateToggleSwitch(sList:FindFirstChildOfClass("Frame"), Config.TpSettings.TpOnLoad, function(ns, set)
-    set(ns); Config.TpSettings.TpOnLoad = ns; SaveConfig()
-    ShowNotification("AUTO TP ON LOAD", ns and "ENABLED" or "DISABLED")
-end)
-
-local rMinGen = CreateRow("Min Gen for Auto TP")
-local minGenBox = Instance.new("TextBox", rMinGen)
-minGenBox.Size = UDim2.new(0, 100, 0, 24)
-minGenBox.Position = UDim2.new(1, -110, 0.5, -12)
-minGenBox.BackgroundColor3 = Theme.SurfaceHighlight
-minGenBox.Text = tostring(Config.TpSettings.MinGenForTp or "")
-minGenBox.Font = Enum.Font.Gotham
-minGenBox.TextSize = 11
-minGenBox.TextColor3 = Theme.TextPrimary
-minGenBox.PlaceholderText = "e.g. 5k, 1m, 1b"
-Instance.new("UICorner", minGenBox).CornerRadius = UDim.new(0, 4)
-minGenBox.FocusLost:Connect(function()
-    local raw = minGenBox.Text:gsub("%s", "")
-    Config.TpSettings.MinGenForTp = (raw == "" and "" or raw)
-    SaveConfig()
-    ShowNotification("MIN GEN FOR TP", Config.TpSettings.MinGenForTp == "" and "No minimum" or "Min: " .. (Config.TpSettings.MinGenForTp or ""))
-end)
-
-local rFPS = CreateRow("FPS Boost")
-CreateToggleSwitch(rFPS, Config.FPSBoost, function(ns, set)
-    set(ns); setFPSBoost(ns)
-    ShowNotification("FPS BOOST", ns and "ENABLED" or "DISABLED")
-end)
-
-local rTrace = CreateRow("Tracer Best Brainrot")
-CreateToggleSwitch(rTrace, Config.TracerEnabled, function(ns, set)
-    set(ns); Config.TracerEnabled = ns; SaveConfig()
-    ShowNotification("TRACER", ns and "ENABLED" or "DISABLED")
-end)
-
-local rLineToBase = CreateRow("Line to base")
-CreateToggleSwitch(rLineToBase, Config.LineToBase, function(ns, set)
-    set(ns); Config.LineToBase = ns; SaveConfig()
+ 
+-- Initialise tab frame lists
+for _, t in ipairs(TAB_NAMES) do tabFrames[t] = {} end
+ 
+-- ── SWITCH TAB FUNCTION ───────────────────────────────────────────────
+local function switchTab(name)
+    currentTab = name
+    -- Show/hide rows
+    for tabName, rows in pairs(tabFrames) do
+        for _, row in ipairs(rows) do
+            if row and row.Parent then
+                row.Visible = (tabName == name)
+            end
+        end
+    end
+    -- Restyle tab buttons
+    for tName, tbtn in pairs(tabButtons) do
+        local col = TAB_COLORS[tName] or Theme.Accent2
+        local active = (tName == name)
+        tbtn.TextColor3 = active and col or Color3.fromRGB(80,90,130)
+        tbtn.BackgroundColor3 = active and Color3.fromRGB(
+            math.floor(col.R*255*0.12),
+            math.floor(col.G*255*0.12),
+            math.floor(col.B*255*0.12)
+        ) or Color3.fromRGB(12,8,30)
+        -- Move underline
+        if active then
+            TweenService:Create(tabUnderline, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+                Position = UDim2.new(0, tbtn.AbsolutePosition.X - sFrame.AbsolutePosition.X, 0, 77),
+                Size = UDim2.new(0, tbtn.AbsoluteSize.X, 0, 2),
+                BackgroundColor3 = col,
+            }):Play()
+        end
+    end
+    sList.CanvasPosition = Vector2.new(0, 0)
+end
+ 
+-- ── BUILD TAB BUTTONS ─────────────────────────────────────────────────
+for _, tName in ipairs(TAB_NAMES) do
+    local col = TAB_COLORS[tName] or Theme.Accent2
+    local tbtn = Instance.new("TextButton", tabBar)
+    tbtn.Size = UDim2.new(0, 58, 1, 0)
+    tbtn.BackgroundColor3 = Color3.fromRGB(12, 8, 30)
+    tbtn.Text = tName
+    tbtn.Font = Enum.Font.GothamBlack
+    tbtn.TextSize = 10
+    tbtn.TextColor3 = Color3.fromRGB(80, 90, 130)
+    tbtn.AutoButtonColor = false
+    Instance.new("UICorner", tbtn).CornerRadius = UDim.new(0, 6)
+    tabButtons[tName] = tbtn
+    tbtn.MouseButton1Click:Connect(function() switchTab(tName) end)
+end
+ 
+-- ─────────────────────────────────────────────────────────────────────
+-- GENERAL TAB
+-- ─────────────────────────────────────────────────────────────────────
+CreateSectionHeader("GENERAL", "General")
+ 
+local rFPS = CreateRow("FPS Boost", nil, "General")
+CreateToggleSwitch(rFPS, Config.FPSBoost, function(ns,set) set(ns); setFPSBoost(ns) end)
+ 
+local rTrace = CreateRow("Tracer Best Brainrot", nil, "General")
+CreateToggleSwitch(rTrace, Config.TracerEnabled, function(ns,set) set(ns); Config.TracerEnabled=ns; SaveConfig() end)
+ 
+local rLineToBase = CreateRow("Line to base", nil, "General")
+CreateToggleSwitch(rLineToBase, Config.LineToBase, function(ns,set)
+    set(ns); Config.LineToBase=ns; SaveConfig()
     if not ns and _G.resetPlotBeam then pcall(_G.resetPlotBeam) end
-    ShowNotification("LINE TO BASE", ns and "ENABLED" or "DISABLED")
 end)
-
-local rXray = CreateRow("X-Ray")
-CreateToggleSwitch(rXray, Config.XrayEnabled, function(ns, set)
-    set(ns); Config.XrayEnabled = ns; if ns then enableXray() else disableXray() end; SaveConfig()
-    ShowNotification("X-RAY", ns and "ENABLED" or "DISABLED")
+ 
+CreateSectionHeader("AUTO TP", "General")
+local rTpOnLoad = CreateRow("TP on Script Load", nil, "General")
+CreateToggleSwitch(rTpOnLoad, Config.TpSettings.TpOnLoad, function(ns,set) set(ns); Config.TpSettings.TpOnLoad=ns; SaveConfig() end)
+ 
+local rMinGen = CreateRow("Min Gen for Auto TP", nil, "General")
+local minGenBox = Instance.new("TextBox", rMinGen)
+minGenBox.Size = UDim2.new(0,100,0,24); minGenBox.Position = UDim2.new(1,-110,0.5,-12)
+minGenBox.BackgroundColor3 = Theme.SurfaceHighlight; minGenBox.Text = tostring(Config.TpSettings.MinGenForTp or "")
+minGenBox.Font = Enum.Font.Gotham; minGenBox.TextSize = 11; minGenBox.TextColor3 = Theme.TextPrimary
+minGenBox.PlaceholderText = "e.g. 5k, 1m"
+Instance.new("UICorner", minGenBox).CornerRadius = UDim.new(0,4)
+minGenBox.FocusLost:Connect(function()
+    Config.TpSettings.MinGenForTp = minGenBox.Text:gsub("%s","") or ""; SaveConfig()
 end)
-
-CreateSectionHeader("Auto TP")
-local toolOptions = {"Flying Carpet", "Cupid's Wings", "Santa's Sleigh", "Witch's Broom"}
+ 
+local toolOptions = {"Flying Carpet","Cupid's Wings","Santa's Sleigh","Witch's Broom"}
 local toolSwitches = {}
 for _, toolName in ipairs(toolOptions) do
-    local r = CreateRow(toolName)
-    local ts = CreateToggleSwitch(r, Config.TpSettings.Tool==toolName, function(rs, set)
-        if rs then
-            Config.TpSettings.Tool=toolName; SaveConfig(); set(true)
-            for n, sw in pairs(toolSwitches) do if n~=toolName then sw.Set(false) end end
-            ShowNotification("TP TOOL", toolName)
-        else
-            set(Config.TpSettings.Tool==toolName)
-        end
+    local r = CreateRow(toolName, nil, "General")
+    local ts = CreateToggleSwitch(r, Config.TpSettings.Tool==toolName, function(rs,set)
+        if rs then Config.TpSettings.Tool=toolName; SaveConfig(); set(true)
+            for n,sw in pairs(toolSwitches) do if n~=toolName then sw.Set(false) end end
+        else set(Config.TpSettings.Tool==toolName) end
     end)
     toolSwitches[toolName] = ts
 end
-
-local rSpeed = CreateRow("Teleport Delay (1=Fast)")
-local speedCont = Instance.new("Frame", rSpeed)
-speedCont.Size = UDim2.new(0,100,0,24); speedCont.Position = UDim2.new(1,-110,0.5,-12); speedCont.BackgroundTransparency=1
-local speedBtns = {}
-for i = 1, 4 do
-    local b = Instance.new("TextButton", speedCont)
-    b.Size = UDim2.new(0.22,0,1,0); b.Position = UDim2.new((i-1)*0.26,0,0,0)
-    local act = Config.TpSettings.Speed==i
-    b.BackgroundColor3 = act and Theme.Accent1 or Theme.SurfaceHighlight
-    b.Text = tostring(i); b.TextColor3 = act and Color3.new(0,0,0) or Theme.TextPrimary
-    b.Font = Enum.Font.GothamBold; b.TextSize = 12
-    Instance.new("UICorner",b).CornerRadius = UDim.new(0,4)
-    b.MouseButton1Click:Connect(function()
-        Config.TpSettings.Speed=i; SaveConfig()
-        for idx, btn in ipairs(speedBtns) do
-            local a=(idx==i); btn.BackgroundColor3=a and Theme.Accent1 or Theme.SurfaceHighlight
-            btn.TextColor3=a and Color3.new(0,0,0) or Theme.TextPrimary
-        end
-        ShowNotification("TP SPEED", "Set to " .. tostring(i))
-    end)
-    table.insert(speedBtns,b)
-end
-
-local rBind = CreateRow("TP Keybind")
+ 
+local rBind = CreateRow("TP Keybind", nil, "General")
 local bBind = Instance.new("TextButton", rBind)
 bBind.Size=UDim2.new(0,60,0,24); bBind.Position=UDim2.new(1,-70,0.5,-12)
 bBind.BackgroundColor3=Theme.SurfaceHighlight; bBind.Text=Config.TpSettings.TpKey
@@ -5268,16 +5415,15 @@ bBind.Font=Enum.Font.GothamBold; bBind.TextColor3=Theme.TextPrimary; bBind.TextS
 Instance.new("UICorner",bBind).CornerRadius=UDim.new(0,4)
 bBind.MouseButton1Click:Connect(function()
     bBind.Text="..."; bBind.TextColor3=Theme.Accent1
-    local con; con=UserInputService.InputBegan:Connect(function(inp)
+    local c; c=UserInputService.InputBegan:Connect(function(inp)
         if inp.UserInputType==Enum.UserInputType.Keyboard then
             Config.TpSettings.TpKey=inp.KeyCode.Name; bBind.Text=inp.KeyCode.Name
-            bBind.TextColor3=Theme.TextPrimary; SaveConfig(); con:Disconnect()
-            ShowNotification("TP KEYBIND", inp.KeyCode.Name)
+            bBind.TextColor3=Theme.TextPrimary; SaveConfig(); c:Disconnect()
         end
     end)
 end)
-
-local rBindClone = CreateRow("Auto Clone Keybind")
+ 
+local rBindClone = CreateRow("Clone Keybind", nil, "General")
 local bBindClone = Instance.new("TextButton", rBindClone)
 bBindClone.Size=UDim2.new(0,60,0,24); bBindClone.Position=UDim2.new(1,-70,0.5,-12)
 bBindClone.BackgroundColor3=Theme.SurfaceHighlight; bBindClone.Text=Config.TpSettings.CloneKey
@@ -5285,17 +5431,56 @@ bBindClone.Font=Enum.Font.GothamBold; bBindClone.TextColor3=Theme.TextPrimary; b
 Instance.new("UICorner",bBindClone).CornerRadius=UDim.new(0,4)
 bBindClone.MouseButton1Click:Connect(function()
     bBindClone.Text="..."; bBindClone.TextColor3=Theme.Accent1
-    local con; con=UserInputService.InputBegan:Connect(function(inp)
+    local c; c=UserInputService.InputBegan:Connect(function(inp)
         if inp.UserInputType==Enum.UserInputType.Keyboard then
             Config.TpSettings.CloneKey=inp.KeyCode.Name; bBindClone.Text=inp.KeyCode.Name
-            bBindClone.TextColor3=Theme.TextPrimary; SaveConfig(); con:Disconnect()
-            ShowNotification("CLONE KEYBIND", inp.KeyCode.Name)
+            bBindClone.TextColor3=Theme.TextPrimary; SaveConfig(); c:Disconnect()
         end
     end)
 end)
-
-CreateSectionHeader("CARPET SPEED")
-local rCarpetBind = CreateRow("Carpet Speed Keybind")
+ 
+local rAutoTpPriority = CreateRow("Auto TP Priority Mode", nil, "General")
+local autoTPPriorityToggleRef = {setFn=nil}
+local autoTPPriorityToggleSwitch = CreateToggleSwitch(rAutoTpPriority, Config.AutoTPPriority, function(ns,set)
+    set(ns); Config.AutoTPPriority=ns; SaveConfig()
+end)
+autoTPPriorityToggleRef.setFn = autoTPPriorityToggleSwitch.Set
+ 
+-- ─────────────────────────────────────────────────────────────────────
+-- MOVEMENT TAB
+-- ─────────────────────────────────────────────────────────────────────
+CreateSectionHeader("MOVEMENT", "Movement")
+ 
+local rInfJump = CreateRow("Infinite Jump", nil, "Movement")
+CreateToggleSwitch(rInfJump, infiniteJumpEnabled, function(ns,set) set(ns); setInfiniteJump(ns) end)
+ 
+local rShowSS = CreateRow("Show Steal Speed Panel", nil, "Movement")
+CreateToggleSwitch(rShowSS, Config.ShowStealSpeedPanel, function(ns,set)
+    set(ns); Config.ShowStealSpeedPanel=ns; SaveConfig()
+    local ssGui = PlayerGui:FindFirstChild("StealSpeedUI"); if ssGui then ssGui.Enabled=ns end
+end)
+ 
+local rAutoStealSpeed = CreateRow("Auto Steal Speed", nil, "Movement")
+CreateToggleSwitch(rAutoStealSpeed, Config.AutoStealSpeed, function(ns,set) set(ns); Config.AutoStealSpeed=ns; SaveConfig() end)
+ 
+local rStealSpeedKey = CreateRow("Steal Speed Keybind", nil, "Movement")
+local bSSKey = Instance.new("TextButton", rStealSpeedKey)
+bSSKey.Size=UDim2.new(0,60,0,24); bSSKey.Position=UDim2.new(1,-70,0.5,-12)
+bSSKey.BackgroundColor3=Theme.SurfaceHighlight; bSSKey.Text=Config.StealSpeedKey
+bSSKey.Font=Enum.Font.GothamBold; bSSKey.TextColor3=Theme.TextPrimary; bSSKey.TextSize=12
+Instance.new("UICorner",bSSKey).CornerRadius=UDim.new(0,4)
+bSSKey.MouseButton1Click:Connect(function()
+    bSSKey.Text="..."; bSSKey.TextColor3=Theme.Accent1
+    local c; c=UserInputService.InputBegan:Connect(function(inp)
+        if inp.UserInputType==Enum.UserInputType.Keyboard then
+            Config.StealSpeedKey=inp.KeyCode.Name; bSSKey.Text=inp.KeyCode.Name
+            bSSKey.TextColor3=Theme.TextPrimary; SaveConfig(); c:Disconnect()
+        end
+    end)
+end)
+ 
+CreateSectionHeader("CARPET SPEED", "Movement")
+local rCarpetBind = CreateRow("Carpet Speed Keybind", nil, "Movement")
 local bCarpet = Instance.new("TextButton", rCarpetBind)
 bCarpet.Size=UDim2.new(0,60,0,24); bCarpet.Position=UDim2.new(1,-70,0.5,-12)
 bCarpet.BackgroundColor3=Theme.SurfaceHighlight; bCarpet.Text=Config.TpSettings.CarpetSpeedKey
@@ -5303,829 +5488,323 @@ bCarpet.Font=Enum.Font.GothamBold; bCarpet.TextColor3=Theme.TextPrimary; bCarpet
 Instance.new("UICorner",bCarpet).CornerRadius=UDim.new(0,4)
 bCarpet.MouseButton1Click:Connect(function()
     bCarpet.Text="..."; bCarpet.TextColor3=Theme.Accent1
-    local con; con=UserInputService.InputBegan:Connect(function(inp)
+    local c; c=UserInputService.InputBegan:Connect(function(inp)
         if inp.UserInputType==Enum.UserInputType.Keyboard then
             Config.TpSettings.CarpetSpeedKey=inp.KeyCode.Name; bCarpet.Text=inp.KeyCode.Name
-            bCarpet.TextColor3=Theme.TextPrimary; SaveConfig(); con:Disconnect()
-            ShowNotification("CARPET SPEED KEYBIND", inp.KeyCode.Name)
+            bCarpet.TextColor3=Theme.TextPrimary; SaveConfig(); c:Disconnect()
         end
     end)
 end)
-
-local rRagdollSelf = CreateRow("Ragdoll Self Keybind")
-local bRagdollSelf = Instance.new("TextButton", rRagdollSelf)
-bRagdollSelf.Size=UDim2.new(0,60,0,24); bRagdollSelf.Position=UDim2.new(1,-70,0.5,-12)
-bRagdollSelf.BackgroundColor3=Theme.SurfaceHighlight; bRagdollSelf.Text=Config.RagdollSelfKey ~= "" and Config.RagdollSelfKey or "NONE"
-bRagdollSelf.Font=Enum.Font.GothamBold; bRagdollSelf.TextColor3=Theme.TextPrimary; bRagdollSelf.TextSize=12
-Instance.new("UICorner",bRagdollSelf).CornerRadius=UDim.new(0,4)
-bRagdollSelf.MouseButton1Click:Connect(function()
-    bRagdollSelf.Text="..."; bRagdollSelf.TextColor3=Theme.Accent1
-    local con; con=UserInputService.InputBegan:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.Keyboard then
-            Config.RagdollSelfKey=inp.KeyCode.Name; bRagdollSelf.Text=inp.KeyCode.Name
-            bRagdollSelf.TextColor3=Theme.TextPrimary; SaveConfig(); con:Disconnect()
-            ShowNotification("RAGDOLL SELF KEYBIND", inp.KeyCode.Name)
-        end
-    end)
-end)
-
-local rCarpetStatus = CreateRow("Carpet Speed Status")
+ 
+local rCarpetStatus = CreateRow("Carpet Speed", nil, "Movement")
 local carpetStatusLbl = Instance.new("TextLabel", rCarpetStatus)
 carpetStatusLbl.Size=UDim2.new(0,50,0,20); carpetStatusLbl.Position=UDim2.new(1,-60,0.5,-10)
-carpetStatusLbl.BackgroundTransparency=1
-carpetStatusLbl.Text=carpetSpeedEnabled and "ON" or "OFF"
+carpetStatusLbl.BackgroundTransparency=1; carpetStatusLbl.Text=carpetSpeedEnabled and "ON" or "OFF"
 carpetStatusLbl.TextColor3=carpetSpeedEnabled and Theme.Success or Theme.Error
 carpetStatusLbl.Font=Enum.Font.GothamBlack; carpetStatusLbl.TextSize=13
 carpetStatusLbl.TextXAlignment=Enum.TextXAlignment.Right
 _carpetStatusLabel = carpetStatusLbl
-
-CreateSectionHeader("MOVEMENT")
-local rInfJump = CreateRow("Infinite Jump")
-CreateToggleSwitch(rInfJump, infiniteJumpEnabled, function(ns, set)
-    set(ns); setInfiniteJump(ns)
-    ShowNotification("INFINITE JUMP", ns and "ENABLED" or "DISABLED")
-end)
-local rShowSS = CreateRow("Show Steal Speed Panel")
-CreateToggleSwitch(rShowSS, Config.ShowStealSpeedPanel, function(ns, set)
-    set(ns); Config.ShowStealSpeedPanel = ns; SaveConfig()
-    local ssGui = PlayerGui:FindFirstChild("StealSpeedUI")
-    if ssGui then ssGui.Enabled = ns end
-    ShowNotification("STEAL SPEED PANEL", ns and "SHOWN" or "HIDDEN")
-end)
-local rAutoStealSpeed = CreateRow("Auto Steal Speed")
-CreateToggleSwitch(rAutoStealSpeed, Config.AutoStealSpeed, function(ns, set)
-    set(ns); Config.AutoStealSpeed = ns; SaveConfig()
-    ShowNotification("AUTO STEAL SPEED", ns and "ENABLED" or "DISABLED")
-end)
-
-local rStealSpeedKey = CreateRow("Steal Speed Keybind")
-local bStealSpeedKey = Instance.new("TextButton", rStealSpeedKey)
-bStealSpeedKey.Size=UDim2.new(0,60,0,24); bStealSpeedKey.Position=UDim2.new(1,-70,0.5,-12)
-bStealSpeedKey.BackgroundColor3=Theme.SurfaceHighlight; bStealSpeedKey.Text=Config.StealSpeedKey
-bStealSpeedKey.Font=Enum.Font.GothamBold; bStealSpeedKey.TextColor3=Theme.TextPrimary; bStealSpeedKey.TextSize=12
-Instance.new("UICorner",bStealSpeedKey).CornerRadius=UDim.new(0,4)
-bStealSpeedKey.MouseButton1Click:Connect(function()
-    bStealSpeedKey.Text="..."; bStealSpeedKey.TextColor3=Theme.Accent1
-    local con; con=UserInputService.InputBegan:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.Keyboard then
-            Config.StealSpeedKey=inp.KeyCode.Name; bStealSpeedKey.Text=inp.KeyCode.Name
-            bStealSpeedKey.TextColor3=Theme.TextPrimary; SaveConfig(); con:Disconnect()
-            ShowNotification("STEAL SPEED KEYBIND", inp.KeyCode.Name)
-        end
-    end)
-end)
-
-CreateSectionHeader("AUTO UNLOCK")
-local rAutoUnlock = CreateRow("Auto Unlock on Steal")
-CreateToggleSwitch(rAutoUnlock, Config.AutoUnlockOnSteal, function(ns, set)
-    set(ns); Config.AutoUnlockOnSteal = ns; SaveConfig()
-    ShowNotification("AUTO UNLOCK", ns and "ENABLED" or "DISABLED")
-end)
-
-local rShowUnlockHUD = CreateRow("Show Unlock Buttons HUD")
-CreateToggleSwitch(rShowUnlockHUD, Config.ShowUnlockButtonsHUD, function(ns, set)
-    set(ns); Config.ShowUnlockButtonsHUD = ns; SaveConfig()
-    local hudGui = PlayerGui:FindFirstChild("XiStatusHUD")
-    if hudGui then
-        local main = hudGui:FindFirstChild("Main")
-        local unlockContainer = main and main:FindFirstChild("UnlockButtonsContainer")
-        if main and unlockContainer then
-            unlockContainer.Visible = ns
-            if ns then
-                TweenService:Create(main, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                    Size = UDim2.new(0, 500, 0, 100)
-                }):Play()
-            else
-                TweenService:Create(main, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                    Size = UDim2.new(0, 500, 0, 50)
-                }):Play()
-            end
-        end
-    end
-end)
-CreateSectionHeader("ANTI-RAGDOLL")
+ 
+CreateSectionHeader("ANTI-RAGDOLL", "Movement")
 local arV1SetRef, arV2SetRef = {}, {}
-local rAr = CreateRow("V1")
-CreateToggleSwitch(rAr, Config.AntiRagdoll > 0, function(ns, set)
-    arV1SetRef.fn = set
-    if ns and Config.AntiRagdollV2 then
-        set(false)
-        ShowNotification("ANTI-RAGDOLL", "DISABLE V2 FIRST")
-        return
-    end
-    set(ns)
-    local mode = ns and 1 or 0
-    Config.AntiRagdoll = mode
-    if ns then
-        Config.AntiRagdollV2 = false
-        if arV2SetRef.fn then arV2SetRef.fn(false) end
-    end
-    SaveConfig()
-    startAntiRagdoll(mode)
+local rAr = CreateRow("V1", nil, "Movement")
+CreateToggleSwitch(rAr, Config.AntiRagdoll>0, function(ns,set)
+    arV1SetRef.fn=set
+    if ns and Config.AntiRagdollV2 then set(false); ShowNotification("ANTI-RAGDOLL","DISABLE V2 FIRST"); return end
+    set(ns); Config.AntiRagdoll=ns and 1 or 0
+    if ns then Config.AntiRagdollV2=false; if arV2SetRef.fn then arV2SetRef.fn(false) end end
+    SaveConfig(); startAntiRagdoll(Config.AntiRagdoll)
     if ns then startAntiRagdollV2(false) end
-    ShowNotification("ANTI-RAGDOLL V1", ns and "ENABLED" or "DISABLED")
 end)
-local rArV2 = CreateRow("V2")
-CreateToggleSwitch(rArV2, Config.AntiRagdollV2, function(ns, set)
-    arV2SetRef.fn = set
-    if ns and Config.AntiRagdoll > 0 then
-        set(false)
-        ShowNotification("ANTI-RAGDOLL", "DISABLE V1 FIRST")
-        return
-    end
-    set(ns)
-    Config.AntiRagdollV2 = ns
-    if ns then
-        Config.AntiRagdoll = 0
-        SaveConfig()
+local rArV2 = CreateRow("V2", nil, "Movement")
+CreateToggleSwitch(rArV2, Config.AntiRagdollV2, function(ns,set)
+    arV2SetRef.fn=set
+    if ns and Config.AntiRagdoll>0 then set(false); ShowNotification("ANTI-RAGDOLL","DISABLE V1 FIRST"); return end
+    set(ns); Config.AntiRagdollV2=ns
+    if ns then Config.AntiRagdoll=0; SaveConfig()
         if arV1SetRef.fn then arV1SetRef.fn(false) end
-        startAntiRagdoll(0)
-        startAntiRagdollV2(true)
-    else
-        SaveConfig()
-        startAntiRagdollV2(false)
-    end
-    ShowNotification("ANTI-RAGDOLL V2", ns and "ENABLED" or "DISABLED")
+        startAntiRagdoll(0); startAntiRagdollV2(true)
+    else SaveConfig(); startAntiRagdollV2(false) end
 end)
-
-
-
-
-
-
-
-
-
-
-
-
-
-CreateSectionHeader("ESP")
-
-local rXray = CreateRow("Base X-Ray")
-local xrayToggle = CreateToggleSwitch(rXray, xrayEnabled, function(ns, set)
-    set(ns)
-    if ns then
-        enableXray()
-        xrayDescConn = Workspace.DescendantAdded:Connect(function(obj)
-            if xrayEnabled and obj:IsA("BasePart") and obj.Anchored and isBaseWall(obj) then
-                originalTransparency[obj] = obj.LocalTransparencyModifier
-                obj.LocalTransparencyModifier = 0.85
-            end
-        end)
-    else
-        disableXray()
+ 
+CreateSectionHeader("AUTO UNLOCK", "Movement")
+local rAutoUnlock = CreateRow("Auto Unlock on Steal", nil, "Movement")
+CreateToggleSwitch(rAutoUnlock, Config.AutoUnlockOnSteal, function(ns,set) set(ns); Config.AutoUnlockOnSteal=ns; SaveConfig() end)
+local rShowUnlockHUD = CreateRow("Show Unlock HUD", nil, "Movement")
+CreateToggleSwitch(rShowUnlockHUD, Config.ShowUnlockButtonsHUD, function(ns,set)
+    set(ns); Config.ShowUnlockButtonsHUD=ns; SaveConfig()
+    local hud = PlayerGui:FindFirstChild("XiStatusHUD")
+    if hud then
+        local m = hud:FindFirstChild("Main")
+        local uc = m and m:FindFirstChild("UnlockButtonsContainer")
+        if m and uc then uc.Visible=ns end
     end
-    Config.XrayEnabled = ns; SaveConfig()
-    ShowNotification("BASE X-RAY", ns and "ENABLED" or "DISABLED")
 end)
+ 
+-- ─────────────────────────────────────────────────────────────────────
+-- VISUALS TAB
+-- ─────────────────────────────────────────────────────────────────────
+CreateSectionHeader("ESP", "Visuals")
+ 
+local rXray = CreateRow("Base X-Ray", nil, "Visuals")
+local xrayToggle = CreateToggleSwitch(rXray, Config.XrayEnabled, function(ns,set)
+    set(ns); if ns then enableXray() else disableXray() end
+    Config.XrayEnabled=ns; SaveConfig()
+end)
+ 
 local playerESPToggleRef = {setFn=nil}
-local rPlayerEsp = CreateRow("Player ESP (Hides Names)")
-CreateToggleSwitch(rPlayerEsp, Config.PlayerESP, function(ns, set)
-    set(ns); Config.PlayerESP = ns; SaveConfig()
+local rPlayerEsp = CreateRow("Player ESP", nil, "Visuals")
+CreateToggleSwitch(rPlayerEsp, Config.PlayerESP, function(ns,set)
+    set(ns); Config.PlayerESP=ns; SaveConfig()
     if playerESPToggleRef.setFn then playerESPToggleRef.setFn(ns) end
-    ShowNotification("PLAYER ESP", ns and "ENABLED" or "DISABLED")
 end)
-
+ 
 local espToggleRef = {enabled=true, setFn=nil}
-local rEsp = CreateRow("Brainrot ESP")
-local espSettingsSwitch = CreateToggleSwitch(rEsp, Config.BrainrotESP, function(ns, set)
-    set(ns); Config.BrainrotESP = ns; SaveConfig()
+local rEsp = CreateRow("Brainrot ESP", nil, "Visuals")
+CreateToggleSwitch(rEsp, Config.BrainrotESP, function(ns,set)
+    set(ns); Config.BrainrotESP=ns; SaveConfig()
     if espToggleRef.setFn then espToggleRef.setFn(ns) end
-    ShowNotification("BRAINROT ESP", ns and "ENABLED" or "DISABLED")
 end)
+ 
 local subspaceMineESPToggleRef = {setFn=nil}
-local rSubspaceMineEsp = CreateRow("Subspace Mine Esp")
-CreateToggleSwitch(rSubspaceMineEsp, Config.SubspaceMineESP, function(ns, set)
-    set(ns); Config.SubspaceMineESP = ns; SaveConfig()
+local rSubMine = CreateRow("Subspace Mine ESP", nil, "Visuals")
+CreateToggleSwitch(rSubMine, Config.SubspaceMineESP, function(ns,set)
+    set(ns); Config.SubspaceMineESP=ns; SaveConfig()
     if subspaceMineESPToggleRef.setFn then subspaceMineESPToggleRef.setFn(ns) end
-    ShowNotification("SUBSPACE MINE ESP", ns and "ENABLED" or "DISABLED")
 end)
-local rDuelBaseESP = CreateRow("Duel Base ESP")
-CreateToggleSwitch(rDuelBaseESP, Config.DuelBaseESP, function(ns, set)
-    set(ns); Config.DuelBaseESP = ns; SaveConfig()
-    ShowNotification("DUEL BASE ESP", ns and "ENABLED" or "DISABLED")
+ 
+local rDuelBase = CreateRow("Duel Base ESP", nil, "Visuals")
+CreateToggleSwitch(rDuelBase, Config.DuelBaseESP, function(ns,set) set(ns); Config.DuelBaseESP=ns; SaveConfig() end)
+ 
+CreateSectionHeader("CAMERA", "Visuals")
+local rFOV = CreateRow("FOV", nil, "Visuals")
+local fovSliderBg = Instance.new("Frame", rFOV)
+fovSliderBg.Size=UDim2.new(0,120,0,5); fovSliderBg.Position=UDim2.new(1,-175,0.5,-2.5)
+fovSliderBg.BackgroundColor3=Color3.fromRGB(30,32,38)
+Instance.new("UICorner",fovSliderBg).CornerRadius=UDim.new(1,0)
+local fovFill=Instance.new("Frame",fovSliderBg); fovFill.BackgroundColor3=Theme.Accent1; fovFill.Size=UDim2.new(0,0,1,0)
+Instance.new("UICorner",fovFill).CornerRadius=UDim.new(1,0)
+local fovKnob=Instance.new("Frame",fovSliderBg); fovKnob.Size=UDim2.new(0,12,0,12); fovKnob.BackgroundColor3=Theme.TextPrimary
+fovKnob.AnchorPoint=Vector2.new(0.5,0.5); fovKnob.Position=UDim2.new(0,0,0.5,0)
+Instance.new("UICorner",fovKnob).CornerRadius=UDim.new(1,0)
+local fovVal=Instance.new("TextLabel",rFOV); fovVal.Size=UDim2.new(0,40,0,20); fovVal.Position=UDim2.new(1,-45,0.5,-10)
+fovVal.BackgroundTransparency=1; fovVal.Text=string.format("%.0f",Config.FOV); fovVal.TextColor3=Theme.TextPrimary
+fovVal.Font=Enum.Font.GothamBold; fovVal.TextSize=12
+local function updateFOV(v)
+    v=math.clamp(v,30,180); Config.FOV=v; SaveConfig()
+    local p=(v-30)/150; fovFill.Size=UDim2.new(p,0,1,0); fovKnob.Position=UDim2.new(p,0,0.5,0)
+    fovVal.Text=string.format("%.0f",v)
+    if Workspace.CurrentCamera then Workspace.CurrentCamera.FieldOfView=v end
+end
+updateFOV(Config.FOV)
+local fovDrag=false
+fovSliderBg.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then fovDrag=true end end)
+UserInputService.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then fovDrag=false end end)
+UserInputService.InputChanged:Connect(function(i)
+    if fovDrag and i.UserInputType==Enum.UserInputType.MouseMovement then
+        local p=(i.Position.X-fovSliderBg.AbsolutePosition.X)/fovSliderBg.AbsoluteSize.X
+        updateFOV(30+p*150)
+    end
 end)
-
-CreateSectionHeader("AUTO STEAL DEFAULTS")
-local nearestToggleRef = {}
-local highestToggleRef = {}
-local priorityToggleRef = {}
-local autoTPPriorityToggleRef = {setFn = nil}
-
-local rDefaultNearest = CreateRow("Default To Nearest")
-local nearestToggleSwitch = CreateToggleSwitch(rDefaultNearest, Config.DefaultToNearest, function(ns, set)
-    if ns then
-        Config.DefaultToNearest = true
-        Config.DefaultToHighest = false
-        Config.DefaultToPriority = false
-        set(true)
-        if highestToggleRef.setFn then highestToggleRef.setFn(false) end
+ 
+CreateSectionHeader("HIDE GUIS", "Visuals")
+local rHideAdmin = CreateRow("Hide Admin Panel", nil, "Visuals")
+CreateToggleSwitch(rHideAdmin, Config.HideAdminPanel, function(ns,set)
+    set(ns); Config.HideAdminPanel=ns; SaveConfig()
+    local g=PlayerGui:FindFirstChild("XiAdminPanel"); if g then g.Enabled=not ns end
+end)
+local rHideAS = CreateRow("Hide Auto Steal", nil, "Visuals")
+CreateToggleSwitch(rHideAS, Config.HideAutoSteal, function(ns,set)
+    set(ns); Config.HideAutoSteal=ns; SaveConfig()
+    local g=PlayerGui:FindFirstChild("AutoStealUI"); if g then g.Enabled=not ns end
+end)
+local rDesyncGui = CreateRow("Show Desync GUI", nil, "Visuals")
+CreateToggleSwitch(rDesyncGui, Config.ShowDesyncGui, function(ns,set)
+    set(ns); Config.ShowDesyncGui=ns; SaveConfig()
+    local g=PlayerGui:FindFirstChild("XiDesyncPanel"); if g then g.Enabled=ns end
+end)
+ 
+-- ─────────────────────────────────────────────────────────────────────
+-- EXTRAS TAB
+-- ─────────────────────────────────────────────────────────────────────
+CreateSectionHeader("AUTOMATION", "Extras")
+local rAutoInvis = CreateRow("Auto Invis During Steal", nil, "Extras")
+CreateToggleSwitch(rAutoInvis, Config.AutoInvisDuringSteal, function(ns,set)
+    set(ns); Config.AutoInvisDuringSteal=ns; _G.AutoInvisDuringSteal=ns; SaveConfig()
+end)
+local rAutoTpFail = CreateRow("Auto TP on Failed Steal", nil, "Extras")
+CreateToggleSwitch(rAutoTpFail, Config.AutoTpOnFailedSteal, function(ns,set)
+    set(ns); Config.AutoTpOnFailedSteal=ns; SaveConfig()
+end)
+local rAutoKick = CreateRow("Auto-Kick on Steal", nil, "Extras")
+CreateToggleSwitch(rAutoKick, Config.AutoKickOnSteal, function(ns,set) set(ns); Config.AutoKickOnSteal=ns; SaveConfig() end)
+ 
+CreateSectionHeader("AUTO STEAL DEFAULTS", "Extras")
+local nearestToggleRef, highestToggleRef, priorityToggleRef = {},{},{}
+local rDefNearest = CreateRow("Default To Nearest", nil, "Extras")
+local nearestTS = CreateToggleSwitch(rDefNearest, Config.DefaultToNearest, function(ns,set)
+    if ns then Config.DefaultToNearest=true; Config.DefaultToHighest=false; Config.DefaultToPriority=false
+        set(true); if highestToggleRef.setFn then highestToggleRef.setFn(false) end
         if priorityToggleRef.setFn then priorityToggleRef.setFn(false) end
-        
-        Config.AutoTPPriority = true
-        if autoTPPriorityToggleRef and autoTPPriorityToggleRef.setFn then
-            autoTPPriorityToggleRef.setFn(true)
-        end
-    else
-        local otherDefaults = Config.DefaultToHighest or Config.DefaultToPriority
-        if not otherDefaults then
-            set(true)
-            ShowNotification("DEFAULT MODE", "At least one default must be enabled")
-            return
-        end
-        Config.DefaultToNearest = false
-        set(false)
-    end
+    else if not (Config.DefaultToHighest or Config.DefaultToPriority) then set(true); return end
+        Config.DefaultToNearest=false; set(false) end
     SaveConfig()
-    ShowNotification("DEFAULT TO NEAREST", ns and "ENABLED" or "DISABLED")
-end)
-nearestToggleRef.setFn = nearestToggleSwitch.Set
-
-local rDefaultHighest = CreateRow("Default To Highest")
-local highestToggleSwitch = CreateToggleSwitch(rDefaultHighest, Config.DefaultToHighest, function(ns, set)
-    if ns then
-        Config.DefaultToNearest = false
-        Config.DefaultToHighest = true
-        Config.DefaultToPriority = false
-        set(true)
-        if nearestToggleRef.setFn then nearestToggleRef.setFn(false) end
+end); nearestToggleRef.setFn = nearestTS.Set
+ 
+local rDefHighest = CreateRow("Default To Highest", nil, "Extras")
+local highestTS = CreateToggleSwitch(rDefHighest, Config.DefaultToHighest, function(ns,set)
+    if ns then Config.DefaultToNearest=false; Config.DefaultToHighest=true; Config.DefaultToPriority=false
+        set(true); if nearestToggleRef.setFn then nearestToggleRef.setFn(false) end
         if priorityToggleRef.setFn then priorityToggleRef.setFn(false) end
-        
-        Config.AutoTPPriority = false
-        if autoTPPriorityToggleRef and autoTPPriorityToggleRef.setFn then
-            autoTPPriorityToggleRef.setFn(false)
-        end
-    else
-        local otherDefaults = Config.DefaultToNearest or Config.DefaultToPriority
-        if not otherDefaults then
-            set(true)
-            ShowNotification("DEFAULT MODE", "At least one default must be enabled")
-            return
-        end
-        Config.DefaultToHighest = false
-        set(false)
-    end
+    else if not (Config.DefaultToNearest or Config.DefaultToPriority) then set(true); return end
+        Config.DefaultToHighest=false; set(false) end
     SaveConfig()
-    ShowNotification("DEFAULT TO HIGHEST", ns and "ENABLED" or "DISABLED")
-end)
-highestToggleRef.setFn = highestToggleSwitch.Set
-
-local rDefaultPriority = CreateRow("Default To Priority")
-local priorityToggleSwitch = CreateToggleSwitch(rDefaultPriority, Config.DefaultToPriority, function(ns, set)
-    if ns then
-        Config.DefaultToNearest = false
-        Config.DefaultToHighest = false
-        Config.DefaultToPriority = true
-        set(true)
-        if nearestToggleRef.setFn then nearestToggleRef.setFn(false) end
+end); highestToggleRef.setFn = highestTS.Set
+ 
+local rDefPriority = CreateRow("Default To Priority", nil, "Extras")
+local priorityTS = CreateToggleSwitch(rDefPriority, Config.DefaultToPriority, function(ns,set)
+    if ns then Config.DefaultToNearest=false; Config.DefaultToHighest=false; Config.DefaultToPriority=true
+        set(true); if nearestToggleRef.setFn then nearestToggleRef.setFn(false) end
         if highestToggleRef.setFn then highestToggleRef.setFn(false) end
-        
-        Config.AutoTPPriority = true
-        if autoTPPriorityToggleRef and autoTPPriorityToggleRef.setFn then
-            autoTPPriorityToggleRef.setFn(true)
-        end
-    else
-        local otherDefaults = Config.DefaultToNearest or Config.DefaultToHighest
-        if not otherDefaults then
-            set(true)
-            ShowNotification("DEFAULT MODE", "At least one default must be enabled")
-            return
-        end
-        Config.DefaultToPriority = false
-        set(false)
-    end
+    else if not (Config.DefaultToNearest or Config.DefaultToHighest) then set(true); return end
+        Config.DefaultToPriority=false; set(false) end
     SaveConfig()
-    ShowNotification("DEFAULT TO PRIORITY", ns and "ENABLED" or "DISABLED")
+end); priorityToggleRef.setFn = priorityTS.Set
+ 
+CreateSectionHeader("PROTECTION", "Extras")
+local rAntiBeeDisco = CreateRow("Anti-Bee & Disco", nil, "Extras")
+CreateToggleSwitch(rAntiBeeDisco, Config.AntiBeeDisco, function(ns,set)
+    set(ns); Config.AntiBeeDisco=ns; SaveConfig()
+    if ns then if _G.ANTI_BEE_DISCO then _G.ANTI_BEE_DISCO.Enable() end
+    else if _G.ANTI_BEE_DISCO then _G.ANTI_BEE_DISCO.Disable() end end
 end)
-priorityToggleRef.setFn = priorityToggleSwitch.Set
-
-CreateSectionHeader("AUTOMATION")
-local rAutoInvis = CreateRow("Auto Invis During Steal")
-CreateToggleSwitch(rAutoInvis, Config.AutoInvisDuringSteal, function(ns, set)
-    set(ns); Config.AutoInvisDuringSteal = ns; _G.AutoInvisDuringSteal = ns; SaveConfig()
-    ShowNotification("AUTO INVIS", ns and "ENABLED" or "DISABLED")
-end)
-local rAutoTpFail = CreateRow("Auto TP on Failed Steal")
-CreateToggleSwitch(rAutoTpFail, Config.AutoTpOnFailedSteal, function(ns, set)
-    set(ns); Config.AutoTpOnFailedSteal = ns; SaveConfig()
-    ShowNotification("AUTO TP ON FAILED STEAL", ns and "ENABLED" or "DISABLED")
-end)
-local rAutoTpPriority = CreateRow("Auto TP Priority Mode")
-local autoTPPriorityToggleSwitch = CreateToggleSwitch(rAutoTpPriority, Config.AutoTPPriority, function(ns, set)
-    set(ns); Config.AutoTPPriority = ns; SaveConfig()
-    ShowNotification("AUTO TP PRIORITY", ns and "PRIORITY" or "HIGHEST")
-end)
-autoTPPriorityToggleRef.setFn = autoTPPriorityToggleSwitch.Set
-local rAutoKick = CreateRow("Auto-Kick on Steal")
-CreateToggleSwitch(rAutoKick, Config.AutoKickOnSteal, function(ns, set)
-    set(ns); Config.AutoKickOnSteal = ns; SaveConfig()
-    ShowNotification("AUTO-KICK ON STEAL", ns and "ENABLED" or "DISABLED")
-end)
-
-CreateSectionHeader("HIDE GUIS")
-local rHideAdminPanel = CreateRow("Hide Admin Panel GUI")
-CreateToggleSwitch(rHideAdminPanel, Config.HideAdminPanel, function(ns, set)
-    set(ns); Config.HideAdminPanel = ns; SaveConfig()
-    local adUI = PlayerGui:FindFirstChild("XiAdminPanel")
-    if adUI then adUI.Enabled = not ns end
-    ShowNotification("HIDE ADMIN PANEL", ns and "ENABLED" or "DISABLED")
-end)
-local rHideAutoSteal = CreateRow("Hide Auto Steal GUI")
-CreateToggleSwitch(rHideAutoSteal, Config.HideAutoSteal, function(ns, set)
-    set(ns); Config.HideAutoSteal = ns; SaveConfig()
-    local asUI = PlayerGui:FindFirstChild("AutoStealUI")
-    if asUI then asUI.Enabled = not ns end
-    local spUI = PlayerGui:FindFirstChild("XiStealProgress")
-    if spUI then spUI.Enabled = not ns end
-    ShowNotification("HIDE AUTO STEAL", ns and "ENABLED" or "DISABLED")
-end)
-
-local rCompactAutoSteal = CreateRow("Compact Auto Steal GUI")
-CreateToggleSwitch(rCompactAutoSteal, Config.CompactAutoSteal, function(ns, set)
-    set(ns); Config.CompactAutoSteal = ns; SaveConfig()
-    local asUI = PlayerGui:FindFirstChild("AutoStealUI")
-    if asUI and asUI:FindFirstChild("Frame") then
-        local frame = asUI.Frame
-        local mobileScale = IS_MOBILE and 0.6 or 1
-        local targetHeight = ns and (5 * 44 + 135) or (630 * mobileScale)
-        
-        local tween = TweenService:Create(
-            frame,
-            TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
-            {Size = UDim2.new(frame.Size.X.Scale, frame.Size.X.Offset, 0, targetHeight)}
-        )
-        tween:Play()
-        
-        tween.Completed:Connect(function()
-            SharedState.ListNeedsRedraw = true
-            if SharedState.UpdateAutoStealUI then
-                SharedState.UpdateAutoStealUI()
+local rTurrets = CreateRow("Auto-Destroy Turrets", nil, "Extras")
+CreateToggleSwitch(rTurrets, Config.AutoDestroyTurrets, function(ns,set) set(ns); Config.AutoDestroyTurrets=ns; SaveConfig() end)
+local rBalloon = CreateRow("Auto Reset on Balloon", nil, "Extras")
+CreateToggleSwitch(rBalloon, Config.AutoResetOnBalloon, function(ns,set) set(ns); Config.AutoResetOnBalloon=ns; SaveConfig() end)
+ 
+CreateSectionHeader("KEYBINDS", "Extras")
+local function makeKeybindRow(label, cfgKey, tabName, applyFn)
+    local r = CreateRow(label, nil, tabName)
+    local b = Instance.new("TextButton", r)
+    b.Size=UDim2.new(0,60,0,24); b.Position=UDim2.new(1,-70,0.5,-12)
+    b.BackgroundColor3=Theme.SurfaceHighlight
+    b.Text = (Config[cfgKey] ~= "" and Config[cfgKey]) or "NONE"
+    b.Font=Enum.Font.GothamBold; b.TextColor3=Theme.TextPrimary; b.TextSize=12
+    Instance.new("UICorner",b).CornerRadius=UDim.new(0,4)
+    b.MouseButton1Click:Connect(function()
+        b.Text="..."; b.TextColor3=Theme.Accent1
+        local c; c=UserInputService.InputBegan:Connect(function(inp)
+            if inp.UserInputType==Enum.UserInputType.Keyboard then
+                Config[cfgKey]=inp.KeyCode.Name; b.Text=inp.KeyCode.Name
+                b.TextColor3=Theme.TextPrimary; SaveConfig()
+                if applyFn then applyFn(inp.KeyCode.Name) end
+                c:Disconnect()
             end
         end)
-    end
-    ShowNotification("COMPACT AUTO STEAL", ns and "ENABLED" or "DISABLED")
-end)
-
-CreateSectionHeader("EXTRAS")   
-
-local rResetKey = CreateRow("Reset")
-local bResetKey = Instance.new("TextButton", rResetKey)
-bResetKey.Size=UDim2.new(0,60,0,24); bResetKey.Position=UDim2.new(1,-70,0.5,-12)
-bResetKey.BackgroundColor3=Theme.SurfaceHighlight; bResetKey.Text=Config.ResetKey
-bResetKey.Font=Enum.Font.GothamBold; bResetKey.TextColor3=Theme.TextPrimary; bResetKey.TextSize=12
-Instance.new("UICorner",bResetKey).CornerRadius=UDim.new(0,4)
-bResetKey.MouseButton1Click:Connect(function()
-    bResetKey.Text="..."; bResetKey.TextColor3=Theme.Accent1
-    local con; con=UserInputService.InputBegan:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.Keyboard then
-            Config.ResetKey=inp.KeyCode.Name; bResetKey.Text=inp.KeyCode.Name
-            bResetKey.TextColor3=Theme.TextPrimary; SaveConfig(); con:Disconnect()
-            ShowNotification("RESET KEYBIND", inp.KeyCode.Name)
-        end
     end)
-end)
-
-local rAutoResetBalloon = CreateRow("Auto reset on balloon")
-CreateToggleSwitch(rAutoResetBalloon, Config.AutoResetOnBalloon, function(ns, set)
-    set(ns); Config.AutoResetOnBalloon = ns; SaveConfig()
-    ShowNotification("AUTO RESET ON BALLOON", ns and "ENABLED" or "DISABLED")
-end)
-
-local rKickKey = CreateRow("Kick")
-local bKickKey = Instance.new("TextButton", rKickKey)
-bKickKey.Size=UDim2.new(0,60,0,24); bKickKey.Position=UDim2.new(1,-70,0.5,-12)
-bKickKey.BackgroundColor3=Theme.SurfaceHighlight; bKickKey.Text=Config.KickKey ~= "" and Config.KickKey or "NONE"
-bKickKey.Font=Enum.Font.GothamBold; bKickKey.TextColor3=Theme.TextPrimary; bKickKey.TextSize=12
-Instance.new("UICorner",bKickKey).CornerRadius=UDim.new(0,4)
-bKickKey.MouseButton1Click:Connect(function()
-    bKickKey.Text="..."; bKickKey.TextColor3=Theme.Accent1
-    local con; con=UserInputService.InputBegan:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.Keyboard then
-            Config.KickKey=inp.KeyCode.Name; bKickKey.Text=inp.KeyCode.Name
-            bKickKey.TextColor3=Theme.TextPrimary; SaveConfig(); con:Disconnect()
-            ShowNotification("KICK KEYBIND", inp.KeyCode.Name)
-        end
-    end)
-end)
-
-local rCleanErrors = CreateRow("Clean Error GUIs")
-CreateToggleSwitch(rCleanErrors, Config.CleanErrorGUIs, function(ns, set)
-    set(ns); Config.CleanErrorGUIs = ns; SaveConfig()
-    ShowNotification("CLEAN ERROR GUIS", ns and "ENABLED" or "DISABLED")
-end)
-
-
-CreateSectionHeader("ADMIN PANEL")
-local rClickToAP = CreateRow("Click To Admin Panel")
-CreateToggleSwitch(rClickToAP, Config.ClickToAP, function(ns, set)
-    set(ns); Config.ClickToAP = ns; SaveConfig()
-    ShowNotification("CLICK TO AP", ns and "ENABLED" or "DISABLED")
-end)
-local rClickToAPSingle = CreateRow("Click To AP Single Command")
-CreateToggleSwitch(rClickToAPSingle, Config.ClickToAPSingleCommand, function(ns, set)
-    set(ns); Config.ClickToAPSingleCommand = ns; SaveConfig()
-    ShowNotification("CLICK TO AP SINGLE", ns and "ENABLED" or "DISABLED")
-end)
-local rDisableClickToAPOnMoby = CreateRow("Disable Click To AP On Moby")
-CreateToggleSwitch(rDisableClickToAPOnMoby, Config.DisableClickToAPOnMoby, function(ns, set)
-    set(ns); Config.DisableClickToAPOnMoby = ns; SaveConfig()
-    ShowNotification("DISABLE CLICK TO AP ON MOBY", ns and "ENABLED" or "DISABLED")
-end)
-local rDisableProximitySpamOnMoby = CreateRow("Disable Proximity AP On Moby")
-CreateToggleSwitch(rDisableProximitySpamOnMoby, Config.DisableProximitySpamOnMoby, function(ns, set)
-    set(ns); Config.DisableProximitySpamOnMoby = ns; SaveConfig()
-    ShowNotification("DISABLE PROXIMITY AP ON MOBY", ns and "ENABLED" or "DISABLED")
-end)
-local rDisableClickToAPOnKawaifu = CreateRow("Disable Click To AP On Kawaifu")
-CreateToggleSwitch(rDisableClickToAPOnKawaifu, Config.DisableClickToAPOnKawaifu, function(ns, set)
-    set(ns); Config.DisableClickToAPOnKawaifu = ns; SaveConfig()
-    ShowNotification("DISABLE CLICK TO AP ON KAWAIFU", ns and "ENABLED" or "DISABLED")
-end)
-local rDisableProximitySpamOnKawaifu = CreateRow("Disable Proximity AP On Kawaifu")
-CreateToggleSwitch(rDisableProximitySpamOnKawaifu, Config.DisableProximitySpamOnKawaifu, function(ns, set)
-    set(ns); Config.DisableProximitySpamOnKawaifu = ns; SaveConfig()
-    ShowNotification("DISABLE PROXIMITY AP ON KAWAIFU", ns and "ENABLED" or "DISABLED")
-end)
-local rHideKawaifuFromPanel = CreateRow("Hide Kawaifu From Panel")
-CreateToggleSwitch(rHideKawaifuFromPanel, Config.HideKawaifuFromPanel, function(ns, set)
-    set(ns); Config.HideKawaifuFromPanel = ns; SaveConfig()
-    ShowNotification("HIDE KAWAIFU FROM PANEL", ns and "ENABLED" or "DISABLED")
-end)
-local rClickToAPKeybind = CreateRow("Click To AP Keybind")
-local bClickToAPKeybind = Instance.new("TextButton", rClickToAPKeybind)
-bClickToAPKeybind.Size=UDim2.new(0,60,0,24); bClickToAPKeybind.Position=UDim2.new(1,-65,0.5,-12)
-bClickToAPKeybind.BackgroundColor3=Theme.SurfaceHighlight; bClickToAPKeybind.Text=Config.ClickToAPKeybind or "L"
-bClickToAPKeybind.Font=Enum.Font.GothamBold; bClickToAPKeybind.TextColor3=Theme.TextPrimary; bClickToAPKeybind.TextSize=12
-Instance.new("UICorner",bClickToAPKeybind).CornerRadius=UDim.new(0,4)
-bClickToAPKeybind.MouseButton1Click:Connect(function()
-    bClickToAPKeybind.Text="..."; bClickToAPKeybind.TextColor3=Theme.Accent1
-    local con; con=UserInputService.InputBegan:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.Keyboard then
-            Config.ClickToAPKeybind=inp.KeyCode.Name; bClickToAPKeybind.Text=inp.KeyCode.Name
-            bClickToAPKeybind.TextColor3=Theme.TextPrimary; SaveConfig(); con:Disconnect()
-            ShowNotification("CLICK TO AP KEYBIND", inp.KeyCode.Name)
-        end
-    end)
-end)
-local rProximityAPKeybind = CreateRow("Proximity AP Keybind")
-local bProximityAPKeybind = Instance.new("TextButton", rProximityAPKeybind)
-bProximityAPKeybind.Size=UDim2.new(0,60,0,24); bProximityAPKeybind.Position=UDim2.new(1,-70,0.5,-12)
-bProximityAPKeybind.BackgroundColor3=Theme.SurfaceHighlight; bProximityAPKeybind.Text=Config.ProximityAPKeybind or "P"
-bProximityAPKeybind.Font=Enum.Font.GothamBold; bProximityAPKeybind.TextColor3=Theme.TextPrimary; bProximityAPKeybind.TextSize=12
-Instance.new("UICorner",bProximityAPKeybind).CornerRadius=UDim.new(0,4)
-bProximityAPKeybind.MouseButton1Click:Connect(function()
-    bProximityAPKeybind.Text="..."; bProximityAPKeybind.TextColor3=Theme.Accent1
-    local con; con=UserInputService.InputBegan:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.Keyboard then
-            Config.ProximityAPKeybind=inp.KeyCode.Name; bProximityAPKeybind.Text=inp.KeyCode.Name
-            bProximityAPKeybind.TextColor3=Theme.TextPrimary; SaveConfig(); con:Disconnect()
-            ShowNotification("PROXIMITY AP KEYBIND", inp.KeyCode.Name)
-        end
-    end)
-end)
-
-CreateSectionHeader("ALERTS")
-local rAlertsEnabled = CreateRow("Enable Alerts")
-CreateToggleSwitch(rAlertsEnabled, Config.AlertsEnabled, function(ns, set)
-    set(ns); Config.AlertsEnabled = ns; SaveConfig()
-    ShowNotification("PRIORITY ALERTS", ns and "ENABLED" or "DISABLED")
-end)
-local rAlertSound = CreateRow("Alert Sound ID")
-local soundBox = Instance.new("TextBox", rAlertSound)
-soundBox.Size = UDim2.new(0, 180, 0, 24)
-soundBox.Position = UDim2.new(1, -185, 0.5, -12)
-soundBox.BackgroundColor3 = Theme.SurfaceHighlight
-soundBox.Text = Config.AlertSoundID or "rbxassetid://6518811702"
-soundBox.Font = Enum.Font.Gotham
-soundBox.TextSize = 10
-soundBox.TextColor3 = Theme.TextPrimary
-soundBox.PlaceholderText = "Sound ID"
-Instance.new("UICorner", soundBox).CornerRadius = UDim.new(0, 4)
-soundBox.FocusLost:Connect(function()
-    Config.AlertSoundID = soundBox.Text
-    SaveConfig()
-    ShowNotification("ALERT SOUND", "Updated")
-end)
-
-CreateSectionHeader("JOB JOINER")
-local rJoinerRow = CreateRow("Job ID Joiner")
-CreateToggleSwitch(rJoinerRow, Config.ShowJobJoiner, function(ns, set)
-    set(ns); Config.ShowJobJoiner = ns; SaveConfig()
-    local gui = PlayerGui:FindFirstChild("XiJobJoiner")
-    if gui then gui.Enabled = Config.ShowJobJoiner end
-    ShowNotification("JOB ID JOINER", ns and "ENABLED" or "DISABLED")
-end)
-local rJoinerKey = CreateRow("Job Joiner Keybind")
-local bJoinerKey = Instance.new("TextButton", rJoinerKey)
-bJoinerKey.Size=UDim2.new(0,60,0,24); bJoinerKey.Position=UDim2.new(1,-70,0.5,-12)
-bJoinerKey.BackgroundColor3=Theme.SurfaceHighlight; bJoinerKey.Text=Config.JobJoinerKey or "J"
-bJoinerKey.Font=Enum.Font.GothamBold; bJoinerKey.TextColor3=Theme.TextPrimary; bJoinerKey.TextSize=12
-Instance.new("UICorner",bJoinerKey).CornerRadius=UDim.new(0,4)
-bJoinerKey.MouseButton1Click:Connect(function()
-    bJoinerKey.Text="..."; bJoinerKey.TextColor3=Theme.Accent1
-    local con; con=UserInputService.InputBegan:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.Keyboard then
-            Config.JobJoinerKey=inp.KeyCode.Name; bJoinerKey.Text=inp.KeyCode.Name
-            bJoinerKey.TextColor3=Theme.TextPrimary; SaveConfig(); con:Disconnect()
-            ShowNotification("JOB JOINER KEYBIND", inp.KeyCode.Name)
-        end
-    end)
-end)
-
-CreateSectionHeader("DESYNC")
-local rDesyncGui = CreateRow("Show Desync GUI")
-CreateToggleSwitch(rDesyncGui, Config.ShowDesyncGui, function(ns, set)
-    set(ns); Config.ShowDesyncGui = ns; SaveConfig()
-    local dGui = PlayerGui:FindFirstChild("XiDesyncPanel")
-    if dGui then dGui.Enabled = ns end
-    ShowNotification("DESYNC GUI", ns and "SHOWN" or "HIDDEN")
-end)
-
-CreateSectionHeader("PROTECTION")
-local rAntiBeeDisco = CreateRow("Anti-Bee & Anti-Disco")
-CreateToggleSwitch(rAntiBeeDisco, Config.AntiBeeDisco, function(ns, set)
-    set(ns); Config.AntiBeeDisco = ns; SaveConfig()
-    if ns then
-        if _G.ANTI_BEE_DISCO and _G.ANTI_BEE_DISCO.Enable then
-            _G.ANTI_BEE_DISCO.Enable()
-        end
-    else
-        if _G.ANTI_BEE_DISCO and _G.ANTI_BEE_DISCO.Disable then
-            _G.ANTI_BEE_DISCO.Disable()
-        end
-    end
-    ShowNotification("ANTI-BEE & DISCO", ns and "ENABLED" or "DISABLED")
-end)
-
-local rAutoDestroyTurrets = CreateRow("Auto-Destroy Turrets")
-CreateToggleSwitch(rAutoDestroyTurrets, Config.AutoDestroyTurrets, function(ns, set)
-    set(ns); Config.AutoDestroyTurrets = ns; SaveConfig()
-    ShowNotification("AUTO-DESTROY TURRETS", ns and "ENABLED" or "DISABLED")
-end)
-
-CreateSectionHeader("CAMERA")
-local rFOV = CreateRow("FOV")
-local fovSliderBg = Instance.new("Frame", rFOV)
-fovSliderBg.Size = UDim2.new(0, 140, 0, 5)
-fovSliderBg.Position = UDim2.new(1, -200, 0.5, -2.5)
-fovSliderBg.BackgroundColor3 = Color3.fromRGB(30, 32, 38)
-Instance.new("UICorner", fovSliderBg).CornerRadius = UDim.new(1, 0)
-local fovFill = Instance.new("Frame", fovSliderBg)
-fovFill.BackgroundColor3 = Theme.Accent1
-fovFill.Size = UDim2.new(0, 0, 1, 0)
-Instance.new("UICorner", fovFill).CornerRadius = UDim.new(1, 0)
-local fovKnob = Instance.new("Frame", fovSliderBg)
-fovKnob.Size = UDim2.new(0, 12, 0, 12)
-fovKnob.BackgroundColor3 = Theme.TextPrimary
-fovKnob.AnchorPoint = Vector2.new(0.5, 0.5)
-fovKnob.Position = UDim2.new(0, 0, 0.5, 0)
-Instance.new("UICorner", fovKnob).CornerRadius = UDim.new(1, 0)
-local fovKnobStroke = Instance.new("UIStroke", fovKnob)
-fovKnobStroke.Color = Theme.Accent1
-fovKnobStroke.Thickness = 1.5
-fovKnobStroke.Transparency = 0.2
-local fovValLbl = Instance.new("TextLabel", rFOV)
-fovValLbl.Size = UDim2.new(0, 40, 0, 20)
-fovValLbl.Position = UDim2.new(1, -50, 0.5, -10)
-fovValLbl.BackgroundTransparency = 1
-fovValLbl.Text = string.format("%.1f", Config.FOV)
-fovValLbl.TextColor3 = Theme.TextPrimary
-fovValLbl.Font = Enum.Font.GothamBold
-fovValLbl.TextSize = 13
-
-local function updateFOVSlider(val)
-    val = math.clamp(val, 30, 180)
-    Config.FOV = val
-    SaveConfig()
-    fovValLbl.Text = string.format("%.1f", val)
-    local pct = (val - 30) / 150
-    fovFill.Size = UDim2.new(pct, 0, 1, 0)
-    fovKnob.Position = UDim2.new(pct, 0, 0.5, 0)
-    if Workspace.CurrentCamera then
-        Workspace.CurrentCamera.FieldOfView = val
-    end
-    ShowNotification("FIELD OF VIEW", string.format("%.1f", val))
 end
-updateFOVSlider(Config.FOV)
-
-local fovDragging = false
-fovSliderBg.InputBegan:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then fovDragging = true end
+makeKeybindRow("Reset Key",        "ResetKey",       "Extras")
+makeKeybindRow("Kick Key",         "KickKey",        "Extras")
+makeKeybindRow("Ragdoll Self Key", "RagdollSelfKey", "Extras")
+ 
+CreateSectionHeader("ALERTS", "Extras")
+local rAlerts = CreateRow("Enable Alerts", nil, "Extras")
+CreateToggleSwitch(rAlerts, Config.AlertsEnabled, function(ns,set) set(ns); Config.AlertsEnabled=ns; SaveConfig() end)
+local rAlertSnd = CreateRow("Alert Sound ID", nil, "Extras")
+local soundBox = Instance.new("TextBox", rAlertSnd)
+soundBox.Size=UDim2.new(0,150,0,24); soundBox.Position=UDim2.new(1,-160,0.5,-12)
+soundBox.BackgroundColor3=Theme.SurfaceHighlight; soundBox.Text=Config.AlertSoundID or ""
+soundBox.Font=Enum.Font.Gotham; soundBox.TextSize=10; soundBox.TextColor3=Theme.TextPrimary
+Instance.new("UICorner",soundBox).CornerRadius=UDim.new(0,4)
+soundBox.FocusLost:Connect(function() Config.AlertSoundID=soundBox.Text; SaveConfig() end)
+ 
+CreateSectionHeader("DESYNC", "Extras")
+local rDesyncOnSteal = CreateRow("Desync on Steal", nil, "Extras")
+local _setAutoDesync2
+local setDesyncOnSteal = CreateToggleSwitch(rDesyncOnSteal, Config.DesyncOnSteal, function(ns,set)
+    Config.DesyncOnSteal=ns; if ns then Config.AutoDesync=false; if _setAutoDesync2 then _setAutoDesync2(false) end end
+    SaveConfig(); set(ns)
 end)
-UserInputService.InputEnded:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then fovDragging = false end
+local rAutoDesync = CreateRow("Auto Desync", nil, "Extras")
+_setAutoDesync2 = CreateToggleSwitch(rAutoDesync, Config.AutoDesync, function(ns,set)
+    Config.AutoDesync=ns; if ns then Config.DesyncOnSteal=false; setDesyncOnSteal.Set(false) end
+    SaveConfig(); set(ns)
+end).Set
+ 
+CreateSectionHeader("JOB JOINER", "Extras")
+local rJoiner = CreateRow("Show Job Joiner", nil, "Extras")
+CreateToggleSwitch(rJoiner, Config.ShowJobJoiner, function(ns,set)
+    set(ns); Config.ShowJobJoiner=ns; SaveConfig()
+    local g=PlayerGui:FindFirstChild("XiJobJoiner"); if g then g.Enabled=ns end
 end)
-UserInputService.InputChanged:Connect(function(i)
-    if fovDragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-        local x = i.Position.X
-        local r = fovSliderBg.AbsolutePosition.X
-        local w = fovSliderBg.AbsoluteSize.X
-        local p = (x - r) / w
-        updateFOVSlider(30 + (p * 150))
-    end
+makeKeybindRow("Job Joiner Key", "JobJoinerKey", "Extras")
+ 
+CreateSectionHeader("UI CONTROLS", "Extras")
+local rLock = CreateRow("Lock UI Dragging", nil, "Extras")
+CreateToggleSwitch(rLock, Config.UILocked, function(ns,set) set(ns); Config.UILocked=ns; SaveConfig() end)
+local rResetPos = CreateRow("Reset UI Positions", nil, "Extras")
+local bResetPos = Instance.new("TextButton", rResetPos)
+bResetPos.Size=UDim2.new(0,70,0,24); bResetPos.Position=UDim2.new(1,-80,0.5,-12)
+bResetPos.BackgroundColor3=Theme.Error; bResetPos.Text="RESET"
+bResetPos.Font=Enum.Font.GothamBold; bResetPos.TextColor3=Theme.TextPrimary; bResetPos.TextSize=12
+Instance.new("UICorner",bResetPos).CornerRadius=UDim.new(0,4)
+bResetPos.MouseButton1Click:Connect(function()
+    Config.Positions=DefaultConfig.Positions; SaveConfig()
+    sFrame.Position=UDim2.new(DefaultConfig.Positions.Settings.X,0,DefaultConfig.Positions.Settings.Y,0)
+    ShowNotification("UI RESET","Positions restored to default")
 end)
-
-local rFOVReset = CreateRow("Reset FOV")
-local bFOVReset = Instance.new("TextButton", rFOVReset)
-bFOVReset.Size = UDim2.new(0, 60, 0, 24)
-bFOVReset.Position = UDim2.new(1, -70, 0.5, -12)
-bFOVReset.BackgroundColor3 = Theme.SurfaceHighlight
-bFOVReset.Text = "Reset"
-bFOVReset.Font = Enum.Font.GothamBold
-bFOVReset.TextColor3 = Theme.TextPrimary
-bFOVReset.TextSize = 12
-Instance.new("UICorner", bFOVReset).CornerRadius = UDim.new(0, 4)
-bFOVReset.MouseButton1Click:Connect(function()
-    updateFOVSlider(70)
-    ShowNotification("FIELD OF VIEW", "Reset to 70")
-end)
-
-CreateSectionHeader("MENU")
+ 
 if not IS_MOBILE then
-    local rMenu = CreateRow("Menu Toggle Key")
+    local rMenu = CreateRow("Menu Toggle Key", nil, "Extras")
     local bMenu = Instance.new("TextButton", rMenu)
-    bMenu.Size=UDim2.new(0,80,0,24); bMenu.Position=UDim2.new(1,-90,0.5,-12)
+    bMenu.Size=UDim2.new(0,70,0,24); bMenu.Position=UDim2.new(1,-80,0.5,-12)
     bMenu.BackgroundColor3=Theme.SurfaceHighlight; bMenu.Text=Config.MenuKey
     bMenu.Font=Enum.Font.GothamBold; bMenu.TextColor3=Theme.TextPrimary; bMenu.TextSize=12
     Instance.new("UICorner",bMenu).CornerRadius=UDim.new(0,4)
     bMenu.MouseButton1Click:Connect(function()
         bMenu.Text="..."; bMenu.TextColor3=Theme.Accent1
-        local con; con=UserInputService.InputBegan:Connect(function(inp)
+        local c; c=UserInputService.InputBegan:Connect(function(inp)
             if inp.UserInputType==Enum.UserInputType.Keyboard then
                 Config.MenuKey=inp.KeyCode.Name; bMenu.Text=inp.KeyCode.Name
-                bMenu.TextColor3=Theme.TextPrimary; SaveConfig(); con:Disconnect()
-                ShowNotification("MENU KEYBIND", inp.KeyCode.Name)
+                bMenu.TextColor3=Theme.TextPrimary; SaveConfig(); c:Disconnect()
             end
         end)
     end)
-else
-    CreateRow("Menu Toggle: Touch Icon")
 end
-
-CreateSectionHeader("UI CONTROLS")
-local rLock = CreateRow("Lock UI Dragging")
-CreateToggleSwitch(rLock, Config.UILocked, function(ns, set)
-    set(ns); Config.UILocked = ns; SaveConfig()
-    ShowNotification("UI LOCK", ns and "ENABLED" or "DISABLED")
+ 
+-- ─────────────────────────────────────────────────────────────────────
+-- ADMIN TAB
+-- ─────────────────────────────────────────────────────────────────────
+CreateSectionHeader("CLICK TO AP", "Admin")
+local rClickToAP = CreateRow("Click To AP", nil, "Admin")
+CreateToggleSwitch(rClickToAP, Config.ClickToAP, function(ns,set) set(ns); Config.ClickToAP=ns; SaveConfig() end)
+local rClickSingle = CreateRow("Single Command Mode", nil, "Admin")
+CreateToggleSwitch(rClickSingle, Config.ClickToAPSingleCommand, function(ns,set) set(ns); Config.ClickToAPSingleCommand=ns; SaveConfig() end)
+local rDisMoby = CreateRow("Disable on Moby", nil, "Admin")
+CreateToggleSwitch(rDisMoby, Config.DisableClickToAPOnMoby, function(ns,set) set(ns); Config.DisableClickToAPOnMoby=ns; SaveConfig() end)
+local rDisKawaifu = CreateRow("Disable on Kawaifu", nil, "Admin")
+CreateToggleSwitch(rDisKawaifu, Config.DisableClickToAPOnKawaifu, function(ns,set) set(ns); Config.DisableClickToAPOnKawaifu=ns; SaveConfig() end)
+makeKeybindRow("Click AP Keybind", "ClickToAPKeybind", "Admin")
+ 
+CreateSectionHeader("PROXIMITY AP", "Admin")
+local rDisProxMoby = CreateRow("Disable Prox on Moby", nil, "Admin")
+CreateToggleSwitch(rDisProxMoby, Config.DisableProximitySpamOnMoby, function(ns,set) set(ns); Config.DisableProximitySpamOnMoby=ns; SaveConfig() end)
+local rDisProxKaw = CreateRow("Disable Prox on Kawaifu", nil, "Admin")
+CreateToggleSwitch(rDisProxKaw, Config.DisableProximitySpamOnKawaifu, function(ns,set) set(ns); Config.DisableProximitySpamOnKawaifu=ns; SaveConfig() end)
+makeKeybindRow("Proximity AP Keybind", "ProximityAPKeybind", "Admin")
+ 
+CreateSectionHeader("PANEL OPTIONS", "Admin")
+local rHideKaw = CreateRow("Hide Kawaifu From Panel", nil, "Admin")
+CreateToggleSwitch(rHideKaw, Config.HideKawaifuFromPanel, function(ns,set) set(ns); Config.HideKawaifuFromPanel=ns; SaveConfig() end)
+local rCleanErr = CreateRow("Clean Error GUIs", nil, "Admin")
+CreateToggleSwitch(rCleanErr, Config.CleanErrorGUIs, function(ns,set) set(ns); Config.CleanErrorGUIs=ns; SaveConfig() end)
+ 
+-- ── CANVAS SIZE AUTO-UPDATE ───────────────────────────────────────────
+sLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    sList.CanvasSize = UDim2.new(0,0,0, sLayout.AbsoluteContentSize.Y+12)
 end)
-
-if IS_MOBILE then
-    local scaleUI = {}
-    scaleUI.row = CreateRow("Mobile GUI Scale")
-    scaleUI.bg = Instance.new("Frame", scaleUI.row)
-    scaleUI.bg.Size = UDim2.new(0, 140, 0, 5)
-    scaleUI.bg.Position = UDim2.new(1, -200, 0.5, -2.5)
-    scaleUI.bg.BackgroundColor3 = Color3.fromRGB(30, 32, 38)
-    Instance.new("UICorner", scaleUI.bg).CornerRadius = UDim.new(1, 0)
-    scaleUI.fill = Instance.new("Frame", scaleUI.bg)
-    scaleUI.fill.BackgroundColor3 = Theme.Accent1
-    scaleUI.fill.BorderSizePixel = 0
-    scaleUI.fill.Size = UDim2.new(0, 0, 1, 0)
-    Instance.new("UICorner", scaleUI.fill).CornerRadius = UDim.new(1, 0)
-    scaleUI.knob = Instance.new("Frame", scaleUI.bg)
-    scaleUI.knob.Size = UDim2.new(0, 14, 0, 14)
-    scaleUI.knob.AnchorPoint = Vector2.new(0.5, 0.5)
-    scaleUI.knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    scaleUI.knob.BorderSizePixel = 0
-    Instance.new("UICorner", scaleUI.knob).CornerRadius = UDim.new(1, 0)
-    scaleUI.stroke = Instance.new("UIStroke", scaleUI.knob)
-    scaleUI.stroke.Color = Theme.Accent1
-    scaleUI.stroke.Thickness = 2
-    scaleUI.readout = Instance.new("TextLabel", scaleUI.row)
-    scaleUI.readout.Size = UDim2.new(0, 50, 0, 20)
-    scaleUI.readout.Position = UDim2.new(1, -145, 0.5, -10)
-    scaleUI.readout.BackgroundTransparency = 1
-    scaleUI.readout.Text = string.format("%.1f", Config.MobileGuiScale or 0.5)
-    scaleUI.readout.Font = Enum.Font.GothamBold
-    scaleUI.readout.TextSize = 11
-    scaleUI.readout.TextColor3 = Theme.Accent1
-    scaleUI.readout.TextXAlignment = Enum.TextXAlignment.Right
-    scaleUI.dragging = false
-    scaleUI.min = 0.1
-    scaleUI.max = 1.0
-    scaleUI.scaleToT = function(s)
-        return math.clamp((s - scaleUI.min) / (scaleUI.max - scaleUI.min), 0, 1)
-    end
-    scaleUI.updateScaleSlider = function(val)
-        local c = math.clamp(val, scaleUI.min, scaleUI.max)
-        Config.MobileGuiScale = c
-        SaveConfig()
-        scaleUI.fill.Size = UDim2.new(scaleUI.scaleToT(c), 0, 1, 0)
-        scaleUI.knob.Position = UDim2.new(0, scaleUI.scaleToT(c) * scaleUI.bg.AbsoluteSize.X, 0.5, 0)
-        scaleUI.readout.Text = string.format("%.2f", c)
-        if SharedState.RefreshMobileScale then SharedState.RefreshMobileScale() end
-    end
-    task.defer(function() scaleUI.updateScaleSlider(Config.MobileGuiScale or 0.5) end)
-    scaleUI.onScaleInput = function(pos)
-        scaleUI.updateScaleSlider(scaleUI.min + math.clamp((pos.X - scaleUI.bg.AbsolutePosition.X) / scaleUI.bg.AbsoluteSize.X, 0, 1) * (scaleUI.max - scaleUI.min))
-    end
-    scaleUI.bg.InputBegan:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
-            scaleUI.dragging = true
-            scaleUI.onScaleInput(inp.Position)
-        end
-    end)
-    scaleUI.knob.InputBegan:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
-            scaleUI.dragging = true
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
-            scaleUI.dragging = false
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(inp)
-        if scaleUI.dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
-            scaleUI.onScaleInput(inp.Position)
-        end
-    end)
-end
-
-local rReset = CreateRow("Reset UI Positions")
-local bReset = Instance.new("TextButton", rReset)
-bReset.Size=UDim2.new(0,80,0,24); bReset.Position=UDim2.new(1,-90,0.5,-12)
-bReset.BackgroundColor3=Theme.Error; bReset.Text="RESET"
-bReset.Font=Enum.Font.GothamBold; bReset.TextColor3=Theme.TextPrimary; bReset.TextSize=12
-Instance.new("UICorner",bReset).CornerRadius=UDim.new(0,4)
-bReset.MouseButton1Click:Connect(function()
-    Config.Positions = DefaultConfig.Positions
-    SaveConfig()
-    ShowNotification("UI RESET", "Positions restored")
-    sFrame.Position = UDim2.new(DefaultConfig.Positions.Settings.X, 0, DefaultConfig.Positions.Settings.Y, 0)
-    if PlayerGui:FindFirstChild("AutoStealUI") then
-        PlayerGui.AutoStealUI.Frame.Position = UDim2.new(DefaultConfig.Positions.AutoSteal.X, 0, DefaultConfig.Positions.AutoSteal.Y, 0)
-    end
-    if PlayerGui:FindFirstChild("StealSpeedUI") then
-        PlayerGui.StealSpeedUI.Frame.Position = UDim2.new(DefaultConfig.Positions.StealSpeed.X, 0, DefaultConfig.Positions.StealSpeed.Y, 0)
-    end
-    if PlayerGui:FindFirstChild("XiAdminPanel") and PlayerGui.XiAdminPanel:FindFirstChild("Frame") then
-        PlayerGui.XiAdminPanel.Frame.Position = UDim2.new(DefaultConfig.Positions.AdminPanel.X, 0, DefaultConfig.Positions.AdminPanel.Y, 0)
-    end
-    if PlayerGui:FindFirstChild("XiInvisPanel") and PlayerGui.XiInvisPanel:FindFirstChild("Frame") then
-        PlayerGui.XiInvisPanel.Frame.Position = UDim2.new(DefaultConfig.Positions.InvisPanel.X, 0, DefaultConfig.Positions.InvisPanel.Y, 0)
-    end
-    ShowNotification("UI RESET", "Positions restored to default")
-end)
-
-local function updateSettingsCanvasSize()
-    local contentHeight = sLayout.AbsoluteContentSize.Y
-    sList.CanvasSize = UDim2.new(0, 0, 0, math.max(contentHeight + 20, sList.AbsoluteSize.Y))
-end
-
-sLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateSettingsCanvasSize)
-task.defer(updateSettingsCanvasSize)
-
-if IS_MOBILE then
-    sList.ScrollBarThickness = 6
-    sList.ScrollingEnabled = true
-    sList.ElasticBehavior = Enum.ElasticBehavior.Always
-end
-
-if not IS_MOBILE then
-    UserInputService.InputBegan:Connect(function(input, gp)
-        if input.KeyCode == (Enum.KeyCode[Config.MenuKey] or Enum.KeyCode.LeftControl) then
-            settingsGui.Enabled = not settingsGui.Enabled
-        end
-        if Config.KickKey ~= "" and input.KeyCode == Enum.KeyCode[Config.KickKey] then
-            kickPlayer()
-        end
-        if Config.RagdollSelfKey ~= "" and input.KeyCode == Enum.KeyCode[Config.RagdollSelfKey] then
-            if not isOnCooldown("ragdoll") then
-                if runAdminCommand(LocalPlayer, "ragdoll") then
-                    activeCooldowns["ragdoll"] = tick()
-                    setGlobalVisualCooldown("ragdoll")
-                    ShowNotification("RAGDOLL SELF", "Ragdolled " .. LocalPlayer.Name)
-                end
-            else
-                ShowNotification("RAGDOLL SELF", "Ragdoll on cooldown")
-            end
-        end
-        if Config.ProximityAPKeybind and input.KeyCode == Enum.KeyCode[Config.ProximityAPKeybind] then
-            ProximityAPActive = not ProximityAPActive
-            if SharedState.ProximityAPButton then
-                updateProximityAPButton()
-            end
-            ShowNotification("PROXIMITY AP", ProximityAPActive and "ENABLED" or "DISABLED")
-        end
-        if input.KeyCode == (Enum.KeyCode[Config.ClickToAPKeybind] or Enum.KeyCode.L) then
-            Config.ClickToAP = not Config.ClickToAP
-            SaveConfig()
-            ShowNotification("CLICK TO AP", Config.ClickToAP and "ENABLED" or "DISABLED")
-        end
-        if Config.JobJoinerKey and input.KeyCode == Enum.KeyCode[Config.JobJoinerKey] then
-            local joinerGui = PlayerGui:FindFirstChild("XiJobJoiner")
-            if joinerGui then
-                Config.ShowJobJoiner = not Config.ShowJobJoiner
-                joinerGui.Enabled = Config.ShowJobJoiner
-                SaveConfig()
-                ShowNotification("JOB ID JOINER", Config.ShowJobJoiner and "OPENED" or "CLOSED")
-            end
-        end
-    end)
-end
-
+ 
 
 task.spawn(function()
     task.wait(1)
