@@ -4301,30 +4301,44 @@ end
     end)
 
     local function createPlayerRow(plr)
-        local row = Instance.new("TextButton") 
-        row.Name = plr.Name
-        row.LayoutOrder = 0
-        row.Size = UDim2.new(1, -4, 0, 60)
-        row.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
-        row.BackgroundTransparency = 0.2
-        row.BorderSizePixel = 0
-        row.AutoButtonColor = false
-        row.Text = ""
-        row.Parent = listFrame
-        Instance.new("UICorner", row).CornerRadius = UDim.new(0, 10)
-        local rowStroke = Instance.new("UIStroke", row)
-        rowStroke.Color = Theme.Accent2
-        rowStroke.Thickness = 1.5
-        rowStroke.Transparency = 0.7
-        
-        row.MouseEnter:Connect(function()
-            row.BackgroundTransparency = 0.05
-            rowStroke.Transparency = 0.4
-            rowStroke.Color = Theme.Accent1
-        end)
-        row.MouseLeave:Connect(function()
-            row.BackgroundTransparency = 0.2
-            rowStroke.Transparency = 0.7
+        local row = Instance.new("TextButton")
+row.Name = plr.Name
+row.LayoutOrder = 0
+row.Size = UDim2.new(1, -4, 0, 60)
+row.BackgroundColor3 = Color3.fromRGB(8, 5, 22)
+row.BackgroundTransparency = 0.05
+row.BorderSizePixel = 0
+row.AutoButtonColor = false
+row.Text = ""
+row.Parent = listFrame
+Instance.new("UICorner", row).CornerRadius = UDim.new(0, 12)
+
+-- Animated gradient background
+local rowGrad = Instance.new("UIGradient", row)
+rowGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(12, 8, 35)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 4, 18))
+}
+rowGrad.Rotation = 45
+
+local rowStroke = Instance.new("UIStroke", row)
+rowStroke.Color = Color3.fromRGB(124, 58, 237)
+rowStroke.Thickness = 1.5
+rowStroke.Transparency = 0.6
+
+-- Left accent bar
+local rowAccent = Instance.new("Frame", row)
+rowAccent.Size = UDim2.new(0, 3, 1, -12)
+rowAccent.Position = UDim2.new(0, 4, 0, 6)
+rowAccent.BackgroundColor3 = Color3.fromRGB(124, 58, 237)
+rowAccent.BorderSizePixel = 0
+Instance.new("UICorner", rowAccent).CornerRadius = UDim.new(1, 0)
+local rowAccentGrad = Instance.new("UIGradient", rowAccent)
+rowAccentGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(124, 58, 237)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 182, 212))
+}
+rowAccentGrad.Rotation = 90
             rowStroke.Color = Theme.Accent2
         end)
 
@@ -4335,9 +4349,22 @@ end
         headshot.Image = Players:GetUserThumbnailAsync(plr.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48)
         Instance.new("UICorner", headshot).CornerRadius = UDim.new(1, 0)
         local headshotStroke = Instance.new("UIStroke", headshot)
-        headshotStroke.Color = Theme.Accent1
-        headshotStroke.Thickness = 2.5
-        headshotStroke.Transparency = 0.2
+headshotStroke.Color = Color3.fromRGB(124, 58, 237)
+headshotStroke.Thickness = 2.5
+headshotStroke.Transparency = 0.1
+task.spawn(function()
+    local cols = {
+        Color3.fromRGB(124, 58, 237),
+        Color3.fromRGB(219, 39, 119),
+        Color3.fromRGB(6, 182, 212),
+    }
+    local ci = 1
+    while headshotStroke.Parent do
+        TweenService:Create(headshotStroke, TweenInfo.new(1.5, Enum.EasingStyle.Sine), {Color = cols[ci]}):Play()
+        ci = (ci % #cols) + 1
+        task.wait(1.5)
+    end
+end)
         
         local dName = Instance.new("TextLabel", row)
         dName.Size = UDim2.new(0, 160, 0, 20)
@@ -4424,26 +4451,63 @@ end
         }
 
         for i, def in ipairs(buttonsDef) do
-            local b = Instance.new("TextButton", btnCont)
-            b.Size = UDim2.new(0, 30, 0, 30)
-            b.Position = UDim2.new(0, (i-1)*34, 0.5, -15)
-            b.AutoButtonColor = false
-            b.Text = def.icon
-            b.TextSize = 18
-            b.TextColor3 = Theme.TextPrimary
-            b.Font = Enum.Font.Gotham
-            b.ZIndex = 11
-            b.Active = true
-            local hasBallooned = SharedState.BalloonedPlayers and next(SharedState.BalloonedPlayers) ~= nil
-            local isOnCD = isOnCooldown(def.cmd)
-            b.BackgroundColor3 = (def.cmd == "balloon" and hasBallooned) or isOnCD and Theme.Error or Color3.fromRGB(35, 37, 43)
-            b.BackgroundTransparency = 0
-            Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
-            local bStroke = Instance.new("UIStroke", b)
-            bStroke.Color = (def.cmd == "balloon" and hasBallooned) or isOnCD and Theme.Error or Theme.Accent1
-            bStroke.Thickness = 1.5
-            bStroke.Transparency = 0.4
-            bStroke.ZIndex = 12
+            local cmdColors = {
+    rocket  = Color3.fromRGB(245, 158, 11),
+    ragdoll = Color3.fromRGB(219, 39, 119),
+    jail    = Color3.fromRGB(239, 68, 68),
+    balloon = Color3.fromRGB(124, 58, 237),
+}
+local cmdColor = cmdColors[def.cmd] or Theme.Accent1
+
+local b = Instance.new("TextButton", btnCont)
+b.Size = UDim2.new(0, 30, 0, 30)
+b.Position = UDim2.new(0, (i-1)*34, 0.5, -15)
+b.AutoButtonColor = false
+b.Text = def.icon
+b.TextSize = 18
+b.TextColor3 = Theme.TextPrimary
+b.Font = Enum.Font.Gotham
+b.ZIndex = 11
+b.Active = true
+local hasBallooned = SharedState.BalloonedPlayers and next(SharedState.BalloonedPlayers) ~= nil
+local isOnCD = isOnCooldown(def.cmd)
+b.BackgroundColor3 = isOnCD and Color3.fromRGB(
+    math.floor(Theme.Error.R*255*0.3),
+    math.floor(Theme.Error.G*255*0.3),
+    math.floor(Theme.Error.B*255*0.3)
+) or Color3.fromRGB(
+    math.floor(cmdColor.R*255*0.15),
+    math.floor(cmdColor.G*255*0.15),
+    math.floor(cmdColor.B*255*0.15)
+)
+b.BackgroundTransparency = 0
+Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+local bStroke = Instance.new("UIStroke", b)
+bStroke.Color = isOnCD and Theme.Error or cmdColor
+bStroke.Thickness = 1.5
+bStroke.Transparency = 0.3
+bStroke.ZIndex = 12
+
+b.MouseEnter:Connect(function()
+    if not isOnCooldown(def.cmd) then
+        TweenService:Create(b, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(
+            math.floor(cmdColor.R*255*0.3),
+            math.floor(cmdColor.G*255*0.3),
+            math.floor(cmdColor.B*255*0.3)
+        )}):Play()
+        TweenService:Create(bStroke, TweenInfo.new(0.15), {Transparency = 0}):Play()
+    end
+end)
+b.MouseLeave:Connect(function()
+    if not isOnCooldown(def.cmd) then
+        TweenService:Create(b, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(
+            math.floor(cmdColor.R*255*0.15),
+            math.floor(cmdColor.G*255*0.15),
+            math.floor(cmdColor.B*255*0.15)
+        )}):Play()
+        TweenService:Create(bStroke, TweenInfo.new(0.15), {Transparency = 0.3}):Play()
+    end
+end)
             
             b.MouseEnter:Connect(function()
                 if not isOnCD and not (def.cmd == "balloon" and hasBallooned) then
@@ -4582,11 +4646,15 @@ end
         rowHighlight.ZIndex = 1
         Instance.new("UICorner", rowHighlight).CornerRadius = UDim.new(0, 6)
         row.MouseEnter:Connect(function()
-            rowHighlight.BackgroundTransparency = 0.7
-        end)
+    TweenService:Create(row, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(18, 10, 45)}):Play()
+    TweenService:Create(rowStroke, TweenInfo.new(0.15), {Transparency = 0.2, Color = Color3.fromRGB(124, 58, 237)}):Play()
+    TweenService:Create(rowAccent, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(219, 39, 119)}):Play()
+end)
         row.MouseLeave:Connect(function()
-            rowHighlight.BackgroundTransparency = 1
-        end)
+    TweenService:Create(row, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(8, 5, 22)}):Play()
+    TweenService:Create(rowStroke, TweenInfo.new(0.15), {Transparency = 0.6, Color = Color3.fromRGB(124, 58, 237)}):Play()
+    TweenService:Create(rowAccent, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(124, 58, 237)}):Play()
+end)
         row.MouseButton1Click:Connect(function()
             local hasAnyAvailable = false
             for _, cmd in ipairs(ALL_COMMANDS) do
@@ -8649,5 +8717,106 @@ task.spawn(function()
 
     clearBtn.MouseButton1Click:Connect(function()
         idBox.Text = ""
+    end)
+end)
+
+-- ── SNOW PARTICLES ────────────────────────────────────────────────────
+task.spawn(function()
+    local snowGui = Instance.new("ScreenGui")
+    snowGui.Name = "XiSnowEffect"
+    snowGui.ResetOnSpawn = false
+    snowGui.DisplayOrder = 9999
+    snowGui.IgnoreGuiInset = true
+    snowGui.Parent = PlayerGui
+
+    local snowCanvas = Instance.new("Frame", snowGui)
+    snowCanvas.Size = UDim2.new(1, 0, 1, 0)
+    snowCanvas.BackgroundTransparency = 1
+    snowCanvas.BorderSizePixel = 0
+    snowCanvas.ZIndex = 9999
+
+    local flakes = {}
+    local MAX_FLAKES = 60
+
+    local function randomFloat(a, b) return a + math.random() * (b - a) end
+
+    local function spawnFlake()
+        if #flakes >= MAX_FLAKES then return end
+
+        local size = randomFloat(3, 8)
+        local flake = Instance.new("Frame", snowCanvas)
+        flake.Size = UDim2.new(0, size, 0, size)
+        flake.Position = UDim2.new(math.random(), 0, -0.02, 0)
+        flake.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        flake.BackgroundTransparency = randomFloat(0.1, 0.5)
+        flake.BorderSizePixel = 0
+        flake.ZIndex = 9999
+        Instance.new("UICorner", flake).CornerRadius = UDim.new(1, 0)
+
+        -- Random glow tint (white/purple/teal matching theme)
+        local tints = {
+            Color3.fromRGB(255, 255, 255),
+            Color3.fromRGB(196, 181, 253),
+            Color3.fromRGB(6, 182, 212),
+            Color3.fromRGB(255, 255, 255),
+            Color3.fromRGB(255, 255, 255),
+        }
+        flake.BackgroundColor3 = tints[math.random(1, #tints)]
+
+        local speed = randomFloat(0.4, 1.2)
+        local drift = randomFloat(-0.015, 0.015)
+        local wobble = randomFloat(0, math.pi * 2)
+        local wobbleSpeed = randomFloat(0.5, 1.5)
+        local wobbleAmt = randomFloat(0.002, 0.006)
+
+        table.insert(flakes, {
+            frame = flake,
+            x = flake.Position.X.Scale,
+            y = -0.02,
+            speed = speed,
+            drift = drift,
+            wobble = wobble,
+            wobbleSpeed = wobbleSpeed,
+            wobbleAmt = wobbleAmt,
+        })
+    end
+
+    local spawnTimer = 0
+    local SPAWN_RATE = 0.12
+
+    RunService.Heartbeat:Connect(function(dt)
+        spawnTimer = spawnTimer + dt
+        if spawnTimer >= SPAWN_RATE then
+            spawnTimer = 0
+            spawnFlake()
+        end
+
+        local i = 1
+        while i <= #flakes do
+            local f = flakes[i]
+            if not f.frame or not f.frame.Parent then
+                table.remove(flakes, i)
+                continue
+            end
+
+            f.wobble = f.wobble + f.wobbleSpeed * dt
+            f.y = f.y + f.speed * dt * 0.04
+            f.x = f.x + f.drift * dt + math.sin(f.wobble) * f.wobbleAmt
+
+            f.frame.Position = UDim2.new(f.x, 0, f.y, 0)
+
+            -- Fade out near bottom
+            if f.y > 0.85 then
+                local fade = 1 - ((f.y - 0.85) / 0.15)
+                f.frame.BackgroundTransparency = math.clamp(1 - fade * 0.9, 0.1, 1)
+            end
+
+            if f.y > 1.02 then
+                f.frame:Destroy()
+                table.remove(flakes, i)
+            else
+                i = i + 1
+            end
+        end
     end)
 end)
