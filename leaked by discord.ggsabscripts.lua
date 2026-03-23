@@ -2440,6 +2440,30 @@ frame.Size = UDim2.new(frame.Size.X.Scale, frame.Size.X.Offset, 0, 670 * (IS_MOB
             targetLabel.Text = ct.petName
             mpsLabel.Text = ct.mpsText
 
+            local imgId = ct.animalData and ct.animalData._cachedImageId
+    if imgId then
+        thumbImage.Image = imgId
+        thumbEmoji.Visible = false
+    else
+        task.spawn(function()
+            local adornee = findAdorneeGlobal(ct.animalData)
+            if adornee then
+                local model = adornee.Parent
+                if model then
+                    local img = model:FindFirstChildOfClass("ImageLabel", true) or model:FindFirstChildWhichIsA("Decal", true)
+                    if img then
+                        local id = img:IsA("ImageLabel") and img.Image or img.Texture
+                        if id and id ~= "" then
+                            thumbImage.Image = id
+                            thumbEmoji.Visible = false
+                            if ct.animalData then ct.animalData._cachedImageId = id end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+
             local hasMut = ct.mutation and ct.mutation ~= "None"
             local mutColor = hasMut and (MUT_COLORS_UI[ct.mutation] or Color3.fromRGB(210,130,255)) or Color3.fromRGB(124,58,237)
             thumbStroke.Color = mutColor
@@ -2463,6 +2487,8 @@ frame.Size = UDim2.new(frame.Size.X.Scale, frame.Size.X.Offset, 0, 670 * (IS_MOB
             mutLabel.Visible = false
         else
             targetLabel.Text = "Disabled"
+            thumbImage.Image = ""
+            thumbEmoji.Visible = true  
             mpsLabel.Text = ""
             mutLabel.Visible = false
         end
@@ -3293,6 +3319,23 @@ frame.Size = UDim2.new(frame.Size.X.Scale, frame.Size.X.Offset, 0, 670 * (IS_MOB
     task.spawn(function() while task.wait(0.5) do updateUI(autoStealEnabled, get_all_pets()) end end)
     task.delay(1, function() SharedState.ListNeedsRedraw = true; updateUI(autoStealEnabled, get_all_pets()) end)
     task.spawn(function() while true do SharedState.AllAnimalsCache = allAnimalsCache; task.wait(0.5) end end)
+
+    task.spawn(function()
+    task.wait(4)
+    for _, data in ipairs(allAnimalsCache) do
+        local adornee = findAdorneeGlobal(data)
+        if adornee then
+            local model = adornee.Parent
+            if model then
+                local img = model:FindFirstChildOfClass("ImageLabel", true) or model:FindFirstChildWhichIsA("Decal", true)
+                if img then
+                    local imgId = img:IsA("ImageLabel") and img.Image or img.Texture
+                    if imgId and imgId ~= "" then data._cachedImageId = imgId end
+                end
+            end
+        end
+    end
+end)
 
     local beamFolder = Instance.new("Folder", Workspace)
     beamFolder.Name = "XiTracers"
@@ -4809,11 +4852,9 @@ local function executeReset()
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     local rootPart = character:FindFirstChild("HumanoidRootPart")
     if rootPart and humanoid then
-        local toolName = Config.TpSettings.Tool
-        local flying = LocalPlayer.Backpack:FindFirstChild(toolName) or character:FindFirstChild(toolName)
-        if flying then humanoid:EquipTool(flying) end
-                
-        rootPart.CFrame = CFrame.new(0, 15000, 0)
+        -- Teleport far above map instantly, no tool equip delay
+        rootPart.CFrame = CFrame.new(0, 30000, 0)
+        rootPart.AssemblyLinearVelocity = Vector3.zero
     end
 end
 
@@ -7203,7 +7244,7 @@ task.spawn(function()
     main.Name = "Main"
     main.Size = UDim2.new(0, BAR_W, 0, BAR_H)
     main.Position = UDim2.new(0.5, 0, 1, -110)
-    main.AnchorPoint = Vector2.new(0.5, 1)
+    main.AnchorPoint = Vector2.new(0.5, 0)
     main.BackgroundColor3 = Color3.fromRGB(8, 6, 20)
     main.BackgroundTransparency = 0.1
     main.BorderSizePixel = 0
