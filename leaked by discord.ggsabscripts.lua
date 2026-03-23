@@ -265,7 +265,7 @@ end
 local Controls = getControls()
 
 local function kickPlayer()
-    LocalPlayer:Kick("\ndiscord.gg/lethalhub - xi loves you <3")
+    LocalPlayer:Kick("\ndiscord.gg/xi-hub - xi loves you <3")
 end
 
 local function walkForward(seconds)
@@ -5138,7 +5138,7 @@ local sDisc = Instance.new("TextLabel", sHeader)
 sDisc.Size = UDim2.new(0.38, 0, 1, 0)
 sDisc.Position = UDim2.new(0.62, 0, 0, 0)
 sDisc.BackgroundTransparency = 1
-sDisc.Text = "discord.gg/lethalhub"
+sDisc.Text = "discord.gg/xi-hub"
 sDisc.Font = Enum.Font.GothamMedium
 sDisc.TextSize = 9
 sDisc.TextColor3 = Color3.fromRGB(80, 90, 130)
