@@ -402,56 +402,6 @@ local function triggerClosestUnlock(yLevel, maxY)
     end
 end
 
-    local playerY = yLevel or hrp.Position.Y
-    local Y_THRESHOLD = 5
-
-    local bestPromptSameLevel = nil
-    local shortestDistSameLevel = math.huge
-
-    local bestPromptFallback = nil
-    local shortestDistFallback = math.huge
-    
-    local plots = Workspace:FindFirstChild("Plots")
-    if not plots then return end
-
-    for _, obj in ipairs(plots:GetDescendants()) do
-        if obj:IsA("ProximityPrompt") and obj.Enabled then
-            local part = obj.Parent
-            if part and part:IsA("BasePart") then
-                if maxY and part.Position.Y > maxY then
-                else
-                    local distance = (hrp.Position - part.Position).Magnitude
-                    local yDifference = math.abs(playerY - part.Position.Y)
-
-                    if distance < shortestDistFallback then
-                        shortestDistFallback = distance
-                        bestPromptFallback = obj
-                    end
-
-                    if yDifference <= Y_THRESHOLD then
-                        if distance < shortestDistSameLevel then
-                            shortestDistSameLevel = distance
-                            bestPromptSameLevel = obj
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    local targetPrompt = bestPromptSameLevel or bestPromptFallback
-
-    if targetPrompt then
-        if fireproximityprompt then
-            fireproximityprompt(targetPrompt)
-        else
-            targetPrompt:InputBegan(Enum.UserInputType.MouseButton1)
-            task.wait(0.05)
-            targetPrompt:InputEnded(Enum.UserInputType.MouseButton1)
-        end
-    end
-end
-
 local Theme = {
     Background       = Color3.fromRGB(6, 3, 24),
     Surface          = Color3.fromRGB(12, 8, 35),
