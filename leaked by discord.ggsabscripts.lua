@@ -3454,7 +3454,7 @@ task.spawn(function()
 
      local frame = Instance.new("Frame")
     local mobileScale = IS_MOBILE and 0.65 or 1
-    frame.Size = UDim2.new(0, 420 * mobileScale, 0, 520 * mobileScale)
+    frame.Size = UDim2.new(0, 420 * mobileScale, 0, 580 * mobileScale)
     frame.Position = UDim2.new(Config.Positions.AdminPanel.X, 0, Config.Positions.AdminPanel.Y, 0)
     frame.BackgroundColor3 = Color3.fromRGB(6, 4, 18)
     frame.BackgroundTransparency = 0.04
@@ -3539,7 +3539,7 @@ task.spawn(function()
     end)
 
     local proxCont = Instance.new("Frame", frame)
-proxCont.Size = UDim2.new(1, -20, 0, 100)
+proxCont.Size = UDim2.new(1, -20, 0, 150)
 proxCont.Position = UDim2.new(0, 10, 0, 58)
 proxCont.BackgroundColor3 = Color3.fromRGB(6, 4, 18)
 proxCont.BackgroundTransparency = 0.15
@@ -3742,9 +3742,9 @@ end)
     end)
 
     local proxSliderBg = Instance.new("Frame", proxCont)
-proxSliderBg.Size = UDim2.new(1, -20, 0, 36)
-proxSliderBg.Position = UDim2.new(0, 10, 1, 8)
-proxSliderBg.BackgroundColor3 = Color3.fromRGB(12, 8, 30)
+proxSliderBg.Size = UDim2.new(1, -16, 0, 44)
+proxSliderBg.Position = UDim2.new(0, 8, 0, 62)
+proxSliderBg.BackgroundColor3 = Color3.fromRGB(10, 6, 24)
 proxSliderBg.BackgroundTransparency = 0.2
 proxSliderBg.BorderSizePixel = 0
 Instance.new("UICorner", proxSliderBg).CornerRadius = UDim.new(0, 10)
@@ -3753,12 +3753,9 @@ proxSliderStroke.Color = Theme.Accent2
 proxSliderStroke.Thickness = 1
 proxSliderStroke.Transparency = 0.5
 
--- Expand proxCont to fit new slider
-proxCont.Size = UDim2.new(1, -20, 0, 90)
-
 local proxSliderLabel = Instance.new("TextLabel", proxSliderBg)
 proxSliderLabel.Size = UDim2.new(0.5, 0, 0, 16)
-proxSliderLabel.Position = UDim2.new(0, 8, 0, 2)
+proxSliderLabel.Position = UDim2.new(0, 8, 0, 3)
 proxSliderLabel.BackgroundTransparency = 1
 proxSliderLabel.Text = "PROXIMITY RANGE"
 proxSliderLabel.Font = Enum.Font.GothamBold
@@ -3768,7 +3765,7 @@ proxSliderLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 local proxSliderVal = Instance.new("TextLabel", proxSliderBg)
 proxSliderVal.Size = UDim2.new(0.5, -8, 0, 16)
-proxSliderVal.Position = UDim2.new(0.5, 0, 0, 2)
+proxSliderVal.Position = UDim2.new(0.5, 0, 0, 3)
 proxSliderVal.BackgroundTransparency = 1
 proxSliderVal.Text = tostring(Config.ProximityRange) .. " studs"
 proxSliderVal.Font = Enum.Font.GothamBlack
@@ -3778,7 +3775,7 @@ proxSliderVal.TextXAlignment = Enum.TextXAlignment.Right
 
 local proxTrack = Instance.new("Frame", proxSliderBg)
 proxTrack.Size = UDim2.new(1, -16, 0, 6)
-proxTrack.Position = UDim2.new(0, 8, 0, 22)
+proxTrack.Position = UDim2.new(0, 8, 0, 24)
 proxTrack.BackgroundColor3 = Color3.fromRGB(30, 20, 60)
 proxTrack.BorderSizePixel = 0
 Instance.new("UICorner", proxTrack).CornerRadius = UDim.new(1, 0)
@@ -3806,7 +3803,6 @@ proxKnobStroke.Color = Theme.Accent1
 proxKnobStroke.Thickness = 1.5
 proxKnobStroke.Transparency = 0.2
 
--- Knob glow pulse
 task.spawn(function()
     while proxKnob.Parent do
         TweenService:Create(proxKnobStroke, TweenInfo.new(1, Enum.EasingStyle.Sine), {Transparency = 0}):Play()
@@ -3815,6 +3811,27 @@ task.spawn(function()
         task.wait(1)
     end
 end)
+
+-- Min/Max labels
+local proxMinLbl = Instance.new("TextLabel", proxSliderBg)
+proxMinLbl.Size = UDim2.new(0, 20, 0, 12)
+proxMinLbl.Position = UDim2.new(0, 8, 0, 32)
+proxMinLbl.BackgroundTransparency = 1
+proxMinLbl.Text = "5"
+proxMinLbl.Font = Enum.Font.GothamMedium
+proxMinLbl.TextSize = 9
+proxMinLbl.TextColor3 = Theme.TextSecondary
+proxMinLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+local proxMaxLbl = Instance.new("TextLabel", proxSliderBg)
+proxMaxLbl.Size = UDim2.new(0, 24, 0, 12)
+proxMaxLbl.Position = UDim2.new(1, -32, 0, 32)
+proxMaxLbl.BackgroundTransparency = 1
+proxMaxLbl.Text = "50"
+proxMaxLbl.Font = Enum.Font.GothamMedium
+proxMaxLbl.TextSize = 9
+proxMaxLbl.TextColor3 = Theme.TextSecondary
+proxMaxLbl.TextXAlignment = Enum.TextXAlignment.Right
 
 local function updateProxSlider(val)
     local min, max = 5, 50
@@ -3825,7 +3842,6 @@ local function updateProxSlider(val)
     proxFill.Size = UDim2.new(pct, 0, 1, 0)
     proxKnob.Position = UDim2.new(pct, 0, 0.5, 0)
     proxSliderVal.Text = string.format("%.0f studs", val)
-    TweenService:Create(proxFillGrad, TweenInfo.new(0.1), {}):Play()
 end
 updateProxSlider(Config.ProximityRange)
 
@@ -3907,8 +3923,8 @@ end
     
 
     local listFrame = Instance.new("ScrollingFrame", frame)
-listFrame.Size = UDim2.new(1, -20, 1, -175)
-listFrame.Position = UDim2.new(0, 10, 0, 172)
+listFrame.Size = UDim2.new(1, -20, 1, -220)
+listFrame.Position = UDim2.new(0, 10, 0, 215)
     listFrame.BackgroundTransparency = 1
     listFrame.BorderSizePixel = 0
     listFrame.ScrollBarThickness = 5
@@ -4718,6 +4734,48 @@ end
     end)
     
     layout.Changed:Connect(function() listFrame.CanvasSize = UDim2.new(0,0,0, layout.AbsoluteContentSize.Y) end)
+end)
+
+-- Resize handle
+local resizeHandle = Instance.new("TextButton", frame)
+resizeHandle.Size = UDim2.new(0, 18, 0, 18)
+resizeHandle.Position = UDim2.new(1, -20, 1, -20)
+resizeHandle.BackgroundColor3 = Color3.fromRGB(124, 58, 237)
+resizeHandle.BackgroundTransparency = 0.4
+resizeHandle.Text = "⤡"
+resizeHandle.Font = Enum.Font.GothamBlack
+resizeHandle.TextSize = 12
+resizeHandle.TextColor3 = Color3.fromRGB(200, 180, 255)
+resizeHandle.AutoButtonColor = false
+resizeHandle.ZIndex = 20
+Instance.new("UICorner", resizeHandle).CornerRadius = UDim.new(0, 5)
+
+local resizing = false
+local resizeStart = Vector2.new()
+local sizeStart = Vector2.new()
+
+resizeHandle.InputBegan:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+        resizing = true
+        resizeStart = Vector2.new(inp.Position.X, inp.Position.Y)
+        sizeStart = Vector2.new(frame.AbsoluteSize.X, frame.AbsoluteSize.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+        resizing = false
+    end
+end)
+UserInputService.InputChanged:Connect(function(inp)
+    if resizing and inp.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = Vector2.new(inp.Position.X, inp.Position.Y) - resizeStart
+        local newW = math.clamp(sizeStart.X + delta.X, 300, 700)
+        local newH = math.clamp(sizeStart.Y + delta.Y, 350, 900)
+        frame.Size = UDim2.new(0, newW, 0, newH)
+        -- Keep list filling remaining space
+        listFrame.Size = UDim2.new(1, -20, 1, -220)
+        resizeHandle.Position = UDim2.new(1, -20, 1, -20)
+    end
 end)
 
 local BASES_LOW = {
