@@ -3692,44 +3692,121 @@ task.spawn(function()
     end)
 
     local proxSliderBg = Instance.new("Frame", proxCont)
-    proxSliderBg.Size = UDim2.new(0, 140, 0, 5)
-    proxSliderBg.Position = UDim2.new(0, 105, 0.5, -2.5)
-    proxSliderBg.BackgroundColor3 = Color3.fromRGB(30, 32, 38)
-    Instance.new("UICorner", proxSliderBg).CornerRadius = UDim.new(1,0)
-    local proxFill = Instance.new("Frame", proxSliderBg)
-    proxFill.BackgroundColor3 = Theme.Accent1; proxFill.Size = UDim2.new(0,0,1,0)
-    Instance.new("UICorner", proxFill).CornerRadius = UDim.new(1,0)
-    local proxKnob = Instance.new("Frame", proxSliderBg)
-    proxKnob.Size = UDim2.new(0,12,0,12); proxKnob.BackgroundColor3 = Theme.TextPrimary
-    proxKnob.AnchorPoint = Vector2.new(0.5, 0.5); proxKnob.Position = UDim2.new(0,0,0.5,0)
-    Instance.new("UICorner", proxKnob).CornerRadius = UDim.new(1,0)
-    local proxKnobStroke = Instance.new("UIStroke", proxKnob)
-    proxKnobStroke.Color = Theme.Accent1
-    proxKnobStroke.Thickness = 1.5
-    proxKnobStroke.Transparency = 0.2
-    local function updateProxSlider(val)
-        local min, max = 5, 50
-        val = math.clamp(val, min, max)
-        Config.ProximityRange = val; SaveConfig()
-        local pct = (val - min)/(max - min)
-        proxFill.Size = UDim2.new(pct, 0, 1, 0)
-        proxKnob.Position = UDim2.new(pct, 0, 0.5, 0)
-        ShowNotification("PROXIMITY RANGE", string.format("%.1f", val) .. " studs")
+proxSliderBg.Size = UDim2.new(1, -20, 0, 36)
+proxSliderBg.Position = UDim2.new(0, 10, 1, 8)
+proxSliderBg.BackgroundColor3 = Color3.fromRGB(12, 8, 30)
+proxSliderBg.BackgroundTransparency = 0.2
+proxSliderBg.BorderSizePixel = 0
+Instance.new("UICorner", proxSliderBg).CornerRadius = UDim.new(0, 10)
+local proxSliderStroke = Instance.new("UIStroke", proxSliderBg)
+proxSliderStroke.Color = Theme.Accent2
+proxSliderStroke.Thickness = 1
+proxSliderStroke.Transparency = 0.5
+
+-- Expand proxCont to fit new slider
+proxCont.Size = UDim2.new(1, -20, 0, 90)
+
+local proxSliderLabel = Instance.new("TextLabel", proxSliderBg)
+proxSliderLabel.Size = UDim2.new(0.5, 0, 0, 16)
+proxSliderLabel.Position = UDim2.new(0, 8, 0, 2)
+proxSliderLabel.BackgroundTransparency = 1
+proxSliderLabel.Text = "PROXIMITY RANGE"
+proxSliderLabel.Font = Enum.Font.GothamBold
+proxSliderLabel.TextSize = 9
+proxSliderLabel.TextColor3 = Theme.TextSecondary
+proxSliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local proxSliderVal = Instance.new("TextLabel", proxSliderBg)
+proxSliderVal.Size = UDim2.new(0.5, -8, 0, 16)
+proxSliderVal.Position = UDim2.new(0.5, 0, 0, 2)
+proxSliderVal.BackgroundTransparency = 1
+proxSliderVal.Text = tostring(Config.ProximityRange) .. " studs"
+proxSliderVal.Font = Enum.Font.GothamBlack
+proxSliderVal.TextSize = 9
+proxSliderVal.TextColor3 = Theme.Accent2
+proxSliderVal.TextXAlignment = Enum.TextXAlignment.Right
+
+local proxTrack = Instance.new("Frame", proxSliderBg)
+proxTrack.Size = UDim2.new(1, -16, 0, 6)
+proxTrack.Position = UDim2.new(0, 8, 0, 22)
+proxTrack.BackgroundColor3 = Color3.fromRGB(30, 20, 60)
+proxTrack.BorderSizePixel = 0
+Instance.new("UICorner", proxTrack).CornerRadius = UDim.new(1, 0)
+
+local proxFill = Instance.new("Frame", proxTrack)
+proxFill.BackgroundColor3 = Theme.Accent1
+proxFill.Size = UDim2.new(0, 0, 1, 0)
+proxFill.BorderSizePixel = 0
+Instance.new("UICorner", proxFill).CornerRadius = UDim.new(1, 0)
+local proxFillGrad = Instance.new("UIGradient", proxFill)
+proxFillGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(124, 58, 237)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 182, 212))
+}
+
+local proxKnob = Instance.new("Frame", proxTrack)
+proxKnob.Size = UDim2.new(0, 14, 0, 14)
+proxKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+proxKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+proxKnob.Position = UDim2.new(0, 0, 0.5, 0)
+proxKnob.BorderSizePixel = 0
+Instance.new("UICorner", proxKnob).CornerRadius = UDim.new(1, 0)
+local proxKnobStroke = Instance.new("UIStroke", proxKnob)
+proxKnobStroke.Color = Theme.Accent1
+proxKnobStroke.Thickness = 1.5
+proxKnobStroke.Transparency = 0.2
+
+-- Knob glow pulse
+task.spawn(function()
+    while proxKnob.Parent do
+        TweenService:Create(proxKnobStroke, TweenInfo.new(1, Enum.EasingStyle.Sine), {Transparency = 0}):Play()
+        task.wait(1)
+        TweenService:Create(proxKnobStroke, TweenInfo.new(1, Enum.EasingStyle.Sine), {Transparency = 0.5}):Play()
+        task.wait(1)
     end
-    updateProxSlider(Config.ProximityRange)
+end)
+
+local function updateProxSlider(val)
+    local min, max = 5, 50
+    val = math.clamp(val, min, max)
+    Config.ProximityRange = val
+    SaveConfig()
+    local pct = (val - min) / (max - min)
+    proxFill.Size = UDim2.new(pct, 0, 1, 0)
+    proxKnob.Position = UDim2.new(pct, 0, 0.5, 0)
+    proxSliderVal.Text = string.format("%.0f studs", val)
+    TweenService:Create(proxFillGrad, TweenInfo.new(0.1), {}):Play()
+end
+updateProxSlider(Config.ProximityRange)
 
     local pDragging = false
-    proxSliderBg.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then pDragging=true end end)
-    UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then pDragging=false end end)
-    UserInputService.InputChanged:Connect(function(i)
-        if pDragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-            local x = i.Position.X
-            local r = proxSliderBg.AbsolutePosition.X
-            local w = proxSliderBg.AbsoluteSize.X
-            local p = (x - r) / w
-            updateProxSlider(5 + (p * 45))
-        end
-    end)
+proxTrack.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        pDragging = true
+        local x = i.Position.X
+        local r = proxTrack.AbsolutePosition.X
+        local w = proxTrack.AbsoluteSize.X
+        updateProxSlider(5 + (math.clamp((x - r) / w, 0, 1) * 45))
+    end
+end)
+proxKnob.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        pDragging = true
+    end
+end)
+UserInputService.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        pDragging = false
+    end
+end)
+UserInputService.InputChanged:Connect(function(i)
+    if pDragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+        local x = i.Position.X
+        local r = proxTrack.AbsolutePosition.X
+        local w = proxTrack.AbsoluteSize.X
+        updateProxSlider(5 + (math.clamp((x - r) / w, 0, 1) * 45))
+    end
+end)
 
     local proxViz = nil
     local function updateProxViz()
@@ -3771,7 +3848,7 @@ task.spawn(function()
         ShowNotification("PROXIMITY AP", ProximityAPActive and "ENABLED" or "DISABLED")
     end)
 
-    proxSliderBg.Position = UDim2.new(0, 156, 0.5, -2.5)
+    
 
     local listFrame = Instance.new("ScrollingFrame", frame)
     listFrame.Size = UDim2.new(1, -20, 1, -110)
