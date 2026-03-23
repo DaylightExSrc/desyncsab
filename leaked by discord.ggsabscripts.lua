@@ -3502,7 +3502,7 @@ task.spawn(function()
     title.Size = UDim2.new(1, -100, 1, 0)
     title.Position = UDim2.new(0, 15, 0, 0)
     title.BackgroundTransparency = 1
-    title.Text = "ADMIN PANEL"
+    title.Text = "⚡ LETHAL AP"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 16
     title.TextColor3 = Theme.TextPrimary
@@ -3539,43 +3539,93 @@ task.spawn(function()
     end)
 
     local proxCont = Instance.new("Frame", frame)
-    proxCont.Size = UDim2.new(1, -20, 0, 44)
-    proxCont.Position = UDim2.new(0, 10, 0, 58)
-    proxCont.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
-    proxCont.BackgroundTransparency = 0.3
-    Instance.new("UICorner", proxCont).CornerRadius = UDim.new(0, 10)
-    local proxContStroke = Instance.new("UIStroke", proxCont)
-    proxContStroke.Color = Theme.Accent2
-    proxContStroke.Thickness = 1
-    proxContStroke.Transparency = 0.6
+proxCont.Size = UDim2.new(1, -20, 0, 100)
+proxCont.Position = UDim2.new(0, 10, 0, 58)
+proxCont.BackgroundColor3 = Color3.fromRGB(6, 4, 18)
+proxCont.BackgroundTransparency = 0.15
+proxCont.BorderSizePixel = 0
+Instance.new("UICorner", proxCont).CornerRadius = UDim.new(0, 12)
+local proxContStroke = Instance.new("UIStroke", proxCont)
+proxContStroke.Color = Color3.fromRGB(124, 58, 237)
+proxContStroke.Thickness = 1.5
+proxContStroke.Transparency = 0.3
 
-    local proxBtn = Instance.new("TextButton", proxCont)
-    proxBtn.Name = "ProximityAPButton"
-    proxBtn.Size = UDim2.new(0, 70, 0, 26)
-    proxBtn.Position = UDim2.new(0, 6, 0.5, -13)
-    proxBtn.BackgroundColor3 = ProximityAPActive and Theme.Accent1 or Color3.fromRGB(35, 37, 43)
-    proxBtn.Text = "Prox"
-    proxBtn.Font = Enum.Font.GothamBold; proxBtn.TextSize = 11
-    proxBtn.TextColor3 = ProximityAPActive and Color3.new(255,255,255) or Theme.TextPrimary
-    Instance.new("UICorner", proxBtn).CornerRadius = UDim.new(0, 6)
-    local proxBtnStroke = Instance.new("UIStroke", proxBtn)
-    proxBtnStroke.Color = ProximityAPActive and Theme.Accent2 or Color3.fromRGB(50, 52, 58)
-    proxBtnStroke.Transparency = 0.3
-    SharedState.ProximityAPButton = proxBtn
-    SharedState.ProximityAPButtonStroke = proxBtnStroke
-    SharedState.AdminProxBtn = proxBtn
+    -- Header label inside proxCont
+local proxHeader = Instance.new("TextLabel", proxCont)
+proxHeader.Size = UDim2.new(1, -16, 0, 18)
+proxHeader.Position = UDim2.new(0, 10, 0, 6)
+proxHeader.BackgroundTransparency = 1
+proxHeader.Text = "⚡ LETHAL AP"
+proxHeader.Font = Enum.Font.GothamBlack
+proxHeader.TextSize = 13
+proxHeader.TextColor3 = Color3.fromRGB(200, 180, 255)
+proxHeader.TextXAlignment = Enum.TextXAlignment.Left
 
-    local spamBaseBtn = Instance.new("TextButton", proxCont)
-    spamBaseBtn.Size = UDim2.new(0, 70, 0, 26)
-    spamBaseBtn.Position = UDim2.new(0, 80, 0.5, -13)
-    spamBaseBtn.BackgroundColor3 = Color3.fromRGB(35, 37, 43)
-    spamBaseBtn.Text = "Spam Owner"
-    spamBaseBtn.Font = Enum.Font.GothamBold; spamBaseBtn.TextSize = 9
-    spamBaseBtn.TextColor3 = Theme.TextPrimary
-    Instance.new("UICorner", spamBaseBtn).CornerRadius = UDim.new(0, 6)
-    local spamBaseBtnStroke = Instance.new("UIStroke", spamBaseBtn)
-    spamBaseBtnStroke.Color = Color3.fromRGB(50, 52, 58)
-    spamBaseBtnStroke.Transparency = 0.3
+local proxHeaderGrad = Instance.new("UIGradient", proxHeader)
+proxHeaderGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(200, 180, 255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(6, 182, 212)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(219, 39, 119))
+}
+task.spawn(function()
+    local offset = 0
+    while proxHeaderGrad.Parent do
+        offset = (offset + 0.02) % 1
+        proxHeaderGrad.Offset = Vector2.new(-1 + offset * 2, 0)
+        task.wait(0.05)
+    end
+end)
+
+-- Button row
+local proxBtnRow = Instance.new("Frame", proxCont)
+proxBtnRow.Size = UDim2.new(1, -16, 0, 30)
+proxBtnRow.Position = UDim2.new(0, 8, 0, 26)
+proxBtnRow.BackgroundTransparency = 1
+
+local proxBtn = Instance.new("TextButton", proxBtnRow)
+proxBtn.Name = "ProximityAPButton"
+proxBtn.Size = UDim2.new(0, 90, 1, 0)
+proxBtn.Position = UDim2.new(0, 0, 0, 0)
+proxBtn.BackgroundColor3 = ProximityAPActive and Color3.fromRGB(60, 20, 120) or Color3.fromRGB(18, 12, 38)
+proxBtn.BackgroundTransparency = 0.1
+proxBtn.Text = ProximityAPActive and "● PROX ON" or "○ PROX OFF"
+proxBtn.Font = Enum.Font.GothamBlack
+proxBtn.TextSize = 10
+proxBtn.TextColor3 = ProximityAPActive and Color3.fromRGB(180, 130, 255) or Color3.fromRGB(100, 80, 150)
+proxBtn.AutoButtonColor = false
+Instance.new("UICorner", proxBtn).CornerRadius = UDim.new(0, 8)
+local proxBtnStroke = Instance.new("UIStroke", proxBtn)
+proxBtnStroke.Color = ProximityAPActive and Color3.fromRGB(124, 58, 237) or Color3.fromRGB(40, 30, 70)
+proxBtnStroke.Thickness = 1.5
+proxBtnStroke.Transparency = 0.3
+SharedState.ProximityAPButton = proxBtn
+SharedState.ProximityAPButtonStroke = proxBtnStroke
+SharedState.AdminProxBtn = proxBtn
+
+local spamBaseBtn = Instance.new("TextButton", proxBtnRow)
+spamBaseBtn.Size = UDim2.new(0, 100, 1, 0)
+spamBaseBtn.Position = UDim2.new(0, 96, 0, 0)
+spamBaseBtn.BackgroundColor3 = Color3.fromRGB(18, 12, 38)
+spamBaseBtn.BackgroundTransparency = 0.1
+spamBaseBtn.Text = "Spam B OWNER"
+spamBaseBtn.Font = Enum.Font.GothamBold
+spamBaseBtn.TextSize = 9
+spamBaseBtn.TextColor3 = Color3.fromRGB(219, 39, 119)
+spamBaseBtn.AutoButtonColor = false
+Instance.new("UICorner", spamBaseBtn).CornerRadius = UDim.new(0, 8)
+local spamBaseBtnStroke = Instance.new("UIStroke", spamBaseBtn)
+spamBaseBtnStroke.Color = Color3.fromRGB(219, 39, 119)
+spamBaseBtnStroke.Thickness = 1.5
+spamBaseBtnStroke.Transparency = 0.4
+
+spamBaseBtn.MouseEnter:Connect(function()
+    TweenService:Create(spamBaseBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(35, 10, 30)}):Play()
+    TweenService:Create(spamBaseBtnStroke, TweenInfo.new(0.15), {Transparency = 0.1}):Play()
+end)
+spamBaseBtn.MouseLeave:Connect(function()
+    TweenService:Create(spamBaseBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(18, 12, 38)}):Play()
+    TweenService:Create(spamBaseBtnStroke, TweenInfo.new(0.15), {Transparency = 0.4}):Play()
+end)
     
     spamBaseBtn.MouseButton1Click:Connect(function()
         local char = LocalPlayer.Character
@@ -3833,14 +3883,20 @@ end)
     RunService.Heartbeat:Connect(updateProxViz)
 
     local function updateProximityAPButton()
-        if SharedState.ProximityAPButton then
-            SharedState.ProximityAPButton.BackgroundColor3 = ProximityAPActive and Theme.Accent1 or Color3.fromRGB(35, 37, 43)
-            SharedState.ProximityAPButton.TextColor3 = ProximityAPActive and Color3.new(255,255,255) or Theme.TextPrimary
-            if SharedState.ProximityAPButtonStroke then
-                SharedState.ProximityAPButtonStroke.Color = ProximityAPActive and Theme.Accent2 or Color3.fromRGB(50, 52, 58)
-            end
+    if SharedState.ProximityAPButton then
+        local btn = SharedState.ProximityAPButton
+        TweenService:Create(btn, TweenInfo.new(0.2), {
+            BackgroundColor3 = ProximityAPActive and Color3.fromRGB(60, 20, 120) or Color3.fromRGB(18, 12, 38)
+        }):Play()
+        btn.Text = ProximityAPActive and "● PROX ON" or "○ PROX OFF"
+        btn.TextColor3 = ProximityAPActive and Color3.fromRGB(180, 130, 255) or Color3.fromRGB(100, 80, 150)
+        if SharedState.ProximityAPButtonStroke then
+            TweenService:Create(SharedState.ProximityAPButtonStroke, TweenInfo.new(0.2), {
+                Color = ProximityAPActive and Color3.fromRGB(124, 58, 237) or Color3.fromRGB(40, 30, 70)
+            }):Play()
         end
     end
+end
     
     proxBtn.MouseButton1Click:Connect(function()
         ProximityAPActive = not ProximityAPActive 
@@ -3851,8 +3907,8 @@ end)
     
 
     local listFrame = Instance.new("ScrollingFrame", frame)
-    listFrame.Size = UDim2.new(1, -20, 1, -110)
-    listFrame.Position = UDim2.new(0, 10, 0, 108)
+listFrame.Size = UDim2.new(1, -20, 1, -175)
+listFrame.Position = UDim2.new(0, 10, 0, 172)
     listFrame.BackgroundTransparency = 1
     listFrame.BorderSizePixel = 0
     listFrame.ScrollBarThickness = 5
