@@ -9233,3 +9233,243 @@ task.spawn(function()
         addGalaxyToGui(name)
     end
 end)
+
+-- ── BASE STEALING ESP ─────────────────────────────────────────────────
+task.spawn(function()
+    local stealingBillboards = {}
+
+    local function removeBillboard(userId)
+        local entry = stealingBillboards[userId]
+        if entry then
+            if entry.bb and entry.bb.Parent then entry.bb:Destroy() end
+            stealingBillboards[userId] = nil
+        end
+    end
+
+    local function createStealingBillboard(player)
+        local char = player.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+
+        -- Remove old one if exists
+        removeBillboard(player.UserId)
+
+        local bb = Instance.new("BillboardGui")
+        bb.Name = "StealingESP_" .. player.UserId
+        bb.Size = UDim2.new(0, 200, 0, 70)
+        bb.StudsOffsetWorldSpace = Vector3.new(0, 4.5, 0)
+        bb.AlwaysOnTop = true
+        bb.LightInfluence = 0
+        bb.MaxDistance = 500
+        bb.Adornee = hrp
+        bb.Parent = hrp
+
+        -- Background frame
+        local bg = Instance.new("Frame", bb)
+        bg.Size = UDim2.new(1, 0, 1, 0)
+        bg.BackgroundColor3 = Color3.fromRGB(10, 10, 18)
+        bg.BackgroundTransparency = 0.15
+        bg.BorderSizePixel = 0
+        Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 10)
+
+        local bgStroke = Instance.new("UIStroke", bg)
+        bgStroke.Color = Color3.fromRGB(219, 39, 119)
+        bgStroke.Thickness = 2
+        bgStroke.Transparency = 0.1
+
+        -- Animated stroke
+        task.spawn(function()
+            local cols = {
+                Color3.fromRGB(219, 39, 119),
+                Color3.fromRGB(124, 58, 237),
+                Color3.fromRGB(6, 182, 212),
+            }
+            local ci = 1
+            while bgStroke.Parent do
+                TweenService:Create(bgStroke, TweenInfo.new(0.8, Enum.EasingStyle.Sine), {Color = cols[ci]}):Play()
+                ci = (ci % #cols) + 1
+                task.wait(0.8)
+            end
+        end)
+
+        -- Headshot image
+        local headshotFrame = Instance.new("Frame", bg)
+        headshotFrame.Size = UDim2.new(0, 44, 0, 44)
+        headshotFrame.Position = UDim2.new(0, 6, 0.5, -22)
+        headshotFrame.BackgroundColor3 = Color3.fromRGB(20, 14, 40)
+        headshotFrame.BorderSizePixel = 0
+        Instance.new("UICorner", headshotFrame).CornerRadius = UDim.new(0, 8)
+        local headshotStroke = Instance.new("UIStroke", headshotFrame)
+        headshotStroke.Color = Color3.fromRGB(219, 39, 119)
+        headshotStroke.Thickness = 1.5
+        headshotStroke.Transparency = 0.2
+
+        local headImg = Instance.new("ImageLabel", headshotFrame)
+        headImg.Size = UDim2.new(1, 0, 1, 0)
+        headImg.BackgroundTransparency = 1
+        headImg.ScaleType = Enum.ScaleType.Crop
+        Instance.new("UICorner", headImg).CornerRadius = UDim.new(0, 6)
+        pcall(function()
+            headImg.Image = Players:GetUserThumbnailAsync(
+                player.UserId,
+                Enum.ThumbnailType.HeadShot,
+                Enum.ThumbnailSize.Size48x48
+            )
+        end)
+
+        -- Display name
+        local dispName = Instance.new("TextLabel", bg)
+        dispName.Size = UDim2.new(1, -58, 0, 18)
+        dispName.Position = UDim2.new(0, 56, 0, 7)
+        dispName.BackgroundTransparency = 1
+        dispName.Font = Enum.Font.GothamBlack
+        dispName.TextSize = 13
+        dispName.TextColor3 = Color3.fromRGB(235, 235, 245)
+        dispName.TextXAlignment = Enum.TextXAlignment.Left
+        dispName.TextTruncate = Enum.TextTruncate.AtEnd
+        dispName.TextStrokeTransparency = 0.5
+        dispName.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        dispName.Text = player.DisplayName
+
+        -- Username
+        local userName = Instance.new("TextLabel", bg)
+        userName.Size = UDim2.new(1, -58, 0, 14)
+        userName.Position = UDim2.new(0, 56, 0, 26)
+        userName.BackgroundTransparency = 1
+        userName.Font = Enum.Font.GothamMedium
+        userName.TextSize = 10
+        userName.TextColor3 = Color3.fromRGB(130, 130, 160)
+        userName.TextXAlignment = Enum.TextXAlignment.Left
+        userName.TextTruncate = Enum.TextTruncate.AtEnd
+        userName.Text = "@" .. player.Name
+
+        -- STEALING badge
+        local stealBadge = Instance.new("TextLabel", bg)
+        stealBadge.Size = UDim2.new(0, 68, 0, 14)
+        stealBadge.Position = UDim2.new(0, 56, 0, 42)
+        stealBadge.BackgroundColor3 = Color3.fromRGB(219, 39, 119)
+        stealBadge.BackgroundTransparency = 0.2
+        stealBadge.Font = Enum.Font.GothamBlack
+        stealBadge.TextSize = 9
+        stealBadge.TextColor3 = Color3.fromRGB(255, 255, 255)
+        stealBadge.TextXAlignment = Enum.TextXAlignment.Center
+        stealBadge.Text = "STEALING"
+        stealBadge.TextStrokeTransparency = 0.6
+        stealBadge.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        Instance.new("UICorner", stealBadge).CornerRadius = UDim.new(0, 4)
+
+        -- Pulse STEALING badge
+        task.spawn(function()
+            while stealBadge.Parent do
+                TweenService:Create(stealBadge, TweenInfo.new(0.5, Enum.EasingStyle.Sine), {
+                    BackgroundTransparency = 0.5
+                }):Play()
+                task.wait(0.5)
+                TweenService:Create(stealBadge, TweenInfo.new(0.5, Enum.EasingStyle.Sine), {
+                    BackgroundTransparency = 0.1
+                }):Play()
+                task.wait(0.5)
+            end
+        end)
+
+        -- Brainrot name label
+        local brainrotLbl = Instance.new("TextLabel", bg)
+        brainrotLbl.Size = UDim2.new(1, -130, 0, 14)
+        brainrotLbl.Position = UDim2.new(0, 130, 0, 42)
+        brainrotLbl.BackgroundTransparency = 1
+        brainrotLbl.Font = Enum.Font.GothamBold
+        brainrotLbl.TextSize = 10
+        brainrotLbl.TextColor3 = Color3.fromRGB(251, 191, 36)
+        brainrotLbl.TextXAlignment = Enum.TextXAlignment.Left
+        brainrotLbl.TextTruncate = Enum.TextTruncate.AtEnd
+        brainrotLbl.Text = ""
+        brainrotLbl.TextStrokeTransparency = 0.5
+        brainrotLbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+
+        -- Live update brainrot name
+        task.spawn(function()
+            while bb.Parent do
+                task.wait(0.2)
+                local brainrot = player:GetAttribute("StealingIndex")
+                if brainrot and brainrot ~= "" then
+                    brainrotLbl.Text = brainrot
+                    brainrotLbl.TextColor3 = Color3.fromRGB(251, 191, 36)
+                else
+                    brainrotLbl.Text = ""
+                end
+                -- Update HRP adornee in case character respawned
+                local newChar = player.Character
+                if newChar then
+                    local newHrp = newChar:FindFirstChild("HumanoidRootPart")
+                    if newHrp and bb.Adornee ~= newHrp then
+                        bb.Adornee = newHrp
+                        bb.Parent = newHrp
+                    end
+                end
+            end
+        end)
+
+        stealingBillboards[player.UserId] = {bb = bb, player = player}
+    end
+
+    -- Watch all players for stealing attribute changes
+    local function hookPlayer(player)
+        if player == LocalPlayer then return end
+
+        player:GetAttributeChangedSignal("Stealing"):Connect(function()
+            local isSteal = player:GetAttribute("Stealing")
+            if isSteal then
+                -- Wait briefly for character
+                task.wait(0.1)
+                createStealingBillboard(player)
+            else
+                removeBillboard(player.UserId)
+            end
+        end)
+
+        -- Hook character added too so billboard follows after respawn
+        player.CharacterAdded:Connect(function()
+            task.wait(0.3)
+            if player:GetAttribute("Stealing") then
+                createStealingBillboard(player)
+            end
+        end)
+
+        -- Already stealing when we join
+        if player:GetAttribute("Stealing") then
+            task.wait(0.1)
+            createStealingBillboard(player)
+        end
+    end
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        task.spawn(hookPlayer, p)
+    end
+    Players.PlayerAdded:Connect(function(p)
+        task.wait(0.1)
+        hookPlayer(p)
+    end)
+    Players.PlayerRemoving:Connect(function(p)
+        removeBillboard(p.UserId)
+    end)
+
+    -- Cleanup stale billboards
+    task.spawn(function()
+        while true do
+            task.wait(1)
+            for userId, entry in pairs(stealingBillboards) do
+                local p = Players:GetPlayerByUserId(userId)
+                if not p or not p.Parent then
+                    removeBillboard(userId)
+                elseif not p:GetAttribute("Stealing") then
+                    removeBillboard(userId)
+                elseif entry.bb and not entry.bb.Parent then
+                    -- billboard got destroyed somehow, recreate
+                    stealingBillboards[userId] = nil
+                    task.spawn(createStealingBillboard, p)
+                end
+            end
+        end
+    end)
+end)
