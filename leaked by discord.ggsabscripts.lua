@@ -5109,11 +5109,59 @@ local function executeReset()
     if not character then return end
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     local rootPart = character:FindFirstChild("HumanoidRootPart")
-    if rootPart and humanoid then
-        -- Teleport far above map instantly, no tool equip delay
-        rootPart.CFrame = CFrame.new(0, 30000, 0)
-        rootPart.AssemblyLinearVelocity = Vector3.zero
-    end
+    if not rootPart or not humanoid then return end
+
+    -- Method 1: Kill health instantly (most reliable)
+    pcall(function()
+        if _G.AntiDieDisabled ~= nil then
+            _G.AntiDieDisabled = true
+        end
+        if _G.AntiDieConnection then
+            pcall(function() _G.AntiDieConnection:Disconnect() end)
+            _G.AntiDieConnection = nil
+        end
+    end)
+
+    -- Method 2: Teleport extremely far and zero velocity
+    rootPart.CFrame = CFrame.new(0, 999999, 0)
+    rootPart.AssemblyLinearVelocity = Vector3.zero
+    rootPart.AssemblyAngularVelocity = Vector3.zero
+
+    -- Method 3: Set health to 0
+    pcall(function()
+        humanoid.Health = 0
+    end)
+
+    -- Method 4: Backup using StarterGui reset (works on most executors)
+    task.spawn(function()
+        pcall(function()
+            local StarterGui = game:GetService("StarterGui")
+            StarterGui:SetCore("ResetButtonCallback", true)
+        end)
+    end)
+
+    -- Re-enable anti-die after respawn
+    local charConn
+    charConn = LocalPlayer.CharacterAdded:Connect(function(newChar)
+        charConn:Disconnect()
+        task.wait(0.5)
+        pcall(function()
+            _G.AntiDieDisabled = false
+            if _G.setupAntiDie then
+                _G.setupAntiDie()
+            end
+        end)
+    end)
+
+    -- Fallback timeout: re-enable after 5s no matter what
+    task.delay(5, function()
+        pcall(function()
+            _G.AntiDieDisabled = false
+            if _G.setupAntiDie then
+                _G.setupAntiDie()
+            end
+        end)
+    end)
 end
 
 task.spawn(function()
@@ -5431,6 +5479,56 @@ sTitle.Font = Enum.Font.GothamBlack
 sTitle.TextSize = 15
 sTitle.TextColor3 = Color3.fromRGB(200, 180, 255)
 sTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Close button for settings
+local sCloseBtn = Instance.new("TextButton", sHeader)
+sCloseBtn.Size = UDim2.new(0, 28, 0, 28)
+sCloseBtn.Position = UDim2.new(1, -34, 0.5, -14)
+sCloseBtn.BackgroundColor3 = Color3.fromRGB(219, 39, 119)
+sCloseBtn.BackgroundTransparency = 0.3
+sCloseBtn.Text = "✕"
+sCloseBtn.Font = Enum.Font.GothamBlack
+sCloseBtn.TextSize = 14
+sCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+sCloseBtn.AutoButtonColor = false
+Instance.new("UICorner", sCloseBtn).CornerRadius = UDim.new(0, 6)
+local sCloseBtnStroke = Instance.new("UIStroke", sCloseBtn)
+sCloseBtnStroke.Color = Color3.fromRGB(219, 39, 119)
+sCloseBtnStroke.Thickness = 1
+sCloseBtnStroke.Transparency = 0.3
+sCloseBtn.MouseEnter:Connect(function()
+    TweenService:Create(sCloseBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0}):Play()
+end)
+sCloseBtn.MouseLeave:Connect(function()
+    TweenService:Create(sCloseBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0.3}):Play()
+end)
+
+-- Restore button (floats when settings is hidden)
+local sRestoreBtn = Instance.new("TextButton", settingsGui)
+sRestoreBtn.Size = UDim2.new(0, 90, 0, 26)
+sRestoreBtn.Position = sFrame.Position
+sRestoreBtn.BackgroundColor3 = Color3.fromRGB(18, 12, 38)
+sRestoreBtn.Text = "⚙ SETTINGS"
+sRestoreBtn.Font = Enum.Font.GothamBold
+sRestoreBtn.TextSize = 10
+sRestoreBtn.TextColor3 = Color3.fromRGB(196, 181, 253)
+sRestoreBtn.Visible = false
+sRestoreBtn.AutoButtonColor = false
+Instance.new("UICorner", sRestoreBtn).CornerRadius = UDim.new(0, 8)
+local sRestoreStroke = Instance.new("UIStroke", sRestoreBtn)
+sRestoreStroke.Color = Color3.fromRGB(124, 58, 237)
+sRestoreStroke.Thickness = 1
+sRestoreStroke.Transparency = 0.4
+MakeDraggable(sRestoreBtn, sRestoreBtn, nil)
+
+sCloseBtn.MouseButton1Click:Connect(function()
+    sFrame.Visible = false
+    sRestoreBtn.Visible = true
+end)
+sRestoreBtn.MouseButton1Click:Connect(function()
+    sFrame.Visible = true
+    sRestoreBtn.Visible = false
+end)
  
 -- discord tag
 local sDisc = Instance.new("TextLabel", sHeader)
@@ -8717,4 +8815,420 @@ task.spawn(function()
     clearBtn.MouseButton1Click:Connect(function()
         idBox.Text = ""
     end)
+end)
+
+-- ── QUICK TOGGLE MINI GUI ─────────────────────────────────────────────
+task.spawn(function()
+    local qtGui = Instance.new("ScreenGui")
+    qtGui.Name = "XiQuickToggles"
+    qtGui.ResetOnSpawn = false
+    qtGui.Parent = PlayerGui
+
+    local qtFrame = Instance.new("Frame")
+    qtFrame.Size = UDim2.new(0, 200, 0, 220)
+    qtFrame.Position = UDim2.new(0.4, 0, 0.02, 0)
+    qtFrame.BackgroundColor3 = Color3.fromRGB(6, 4, 18)
+    qtFrame.BackgroundTransparency = 0.05
+    qtFrame.BorderSizePixel = 0
+    qtFrame.ClipsDescendants = true
+    qtFrame.Parent = qtGui
+    Instance.new("UICorner", qtFrame).CornerRadius = UDim.new(0, 12)
+
+    local qtStroke = Instance.new("UIStroke", qtFrame)
+    qtStroke.Thickness = 1.5
+    qtStroke.Color = Color3.fromRGB(124, 58, 237)
+    qtStroke.Transparency = 0.3
+    task.spawn(function()
+        local cols = {
+            Color3.fromRGB(124, 58, 237),
+            Color3.fromRGB(219, 39, 119),
+            Color3.fromRGB(6, 182, 212),
+        }
+        local ci = 1
+        while qtStroke.Parent do
+            TweenService:Create(qtStroke, TweenInfo.new(1.5, Enum.EasingStyle.Sine), {Color = cols[ci]}):Play()
+            ci = (ci % #cols) + 1
+            task.wait(1.5)
+        end
+    end)
+
+    -- Header
+    local qtHeader = Instance.new("Frame", qtFrame)
+    qtHeader.Size = UDim2.new(1, 0, 0, 36)
+    qtHeader.BackgroundColor3 = Color3.fromRGB(124, 58, 237)
+    qtHeader.BackgroundTransparency = 0.82
+    qtHeader.BorderSizePixel = 0
+    local qtHeaderGrad = Instance.new("UIGradient", qtHeader)
+    qtHeaderGrad.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(124, 58, 237)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(219, 39, 119))
+    }
+    qtHeaderGrad.Transparency = NumberSequence.new{
+        NumberSequenceKeypoint.new(0, 0.75),
+        NumberSequenceKeypoint.new(1, 0.9)
+    }
+    MakeDraggable(qtHeader, qtFrame, nil)
+
+    local qtTitle = Instance.new("TextLabel", qtHeader)
+    qtTitle.Size = UDim2.new(1, -40, 1, 0)
+    qtTitle.Position = UDim2.new(0, 10, 0, 0)
+    qtTitle.BackgroundTransparency = 1
+    qtTitle.Text = "⚡ QUICK"
+    qtTitle.Font = Enum.Font.GothamBlack
+    qtTitle.TextSize = 13
+    qtTitle.TextColor3 = Color3.fromRGB(200, 180, 255)
+    qtTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- Close button
+    local qtClose = Instance.new("TextButton", qtHeader)
+    qtClose.Size = UDim2.new(0, 24, 0, 24)
+    qtClose.Position = UDim2.new(1, -28, 0.5, -12)
+    qtClose.BackgroundColor3 = Color3.fromRGB(219, 39, 119)
+    qtClose.BackgroundTransparency = 0.3
+    qtClose.Text = "✕"
+    qtClose.Font = Enum.Font.GothamBlack
+    qtClose.TextSize = 12
+    qtClose.TextColor3 = Color3.fromRGB(255, 255, 255)
+    qtClose.AutoButtonColor = false
+    Instance.new("UICorner", qtClose).CornerRadius = UDim.new(0, 5)
+    qtClose.MouseButton1Click:Connect(function()
+        qtFrame.Visible = false
+    end)
+
+    -- Restore button (shows when closed)
+    local qtRestore = Instance.new("TextButton", qtGui)
+    qtRestore.Size = UDim2.new(0, 80, 0, 26)
+    qtRestore.Position = UDim2.new(0.4, 0, 0.02, 0)
+    qtRestore.BackgroundColor3 = Color3.fromRGB(18, 12, 38)
+    qtRestore.Text = "⚡ QUICK"
+    qtRestore.Font = Enum.Font.GothamBold
+    qtRestore.TextSize = 10
+    qtRestore.TextColor3 = Color3.fromRGB(196, 181, 253)
+    qtRestore.Visible = false
+    qtRestore.AutoButtonColor = false
+    Instance.new("UICorner", qtRestore).CornerRadius = UDim.new(0, 8)
+    local qtRestoreStroke = Instance.new("UIStroke", qtRestore)
+    qtRestoreStroke.Color = Color3.fromRGB(124, 58, 237)
+    qtRestoreStroke.Thickness = 1
+    qtRestoreStroke.Transparency = 0.4
+    MakeDraggable(qtRestore, qtRestore, nil)
+
+    qtClose.MouseButton1Click:Connect(function()
+        qtFrame.Visible = false
+        qtRestore.Visible = true
+    end)
+    qtRestore.MouseButton1Click:Connect(function()
+        qtFrame.Visible = true
+        qtRestore.Visible = false
+    end)
+
+    -- Content area
+    local qtContent = Instance.new("Frame", qtFrame)
+    qtContent.Size = UDim2.new(1, -16, 1, -44)
+    qtContent.Position = UDim2.new(0, 8, 0, 40)
+    qtContent.BackgroundTransparency = 1
+    local qtLayout = Instance.new("UIListLayout", qtContent)
+    qtLayout.Padding = UDim.new(0, 6)
+    qtLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local function MakeQTRow(labelText, isOn, onToggle)
+        local row = Instance.new("Frame", qtContent)
+        row.Size = UDim2.new(1, 0, 0, 30)
+        row.BackgroundColor3 = Color3.fromRGB(12, 8, 30)
+        row.BackgroundTransparency = 0.05
+        row.BorderSizePixel = 0
+        Instance.new("UICorner", row).CornerRadius = UDim.new(0, 8)
+        local rowStroke = Instance.new("UIStroke", row)
+        rowStroke.Color = Color3.fromRGB(40, 30, 70)
+        rowStroke.Thickness = 1
+        rowStroke.Transparency = 0.4
+
+        local lbl = Instance.new("TextLabel", row)
+        lbl.Size = UDim2.new(0.6, 0, 1, 0)
+        lbl.Position = UDim2.new(0, 8, 0, 0)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = labelText
+        lbl.Font = Enum.Font.GothamBold
+        lbl.TextSize = 10
+        lbl.TextColor3 = Color3.fromRGB(190, 180, 220)
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+
+        local sw = Instance.new("Frame", row)
+        sw.Size = UDim2.new(0, 36, 0, 18)
+        sw.Position = UDim2.new(1, -44, 0.5, -9)
+        sw.BackgroundColor3 = isOn and Color3.fromRGB(60, 20, 120) or Color3.fromRGB(20, 14, 40)
+        sw.BorderSizePixel = 0
+        Instance.new("UICorner", sw).CornerRadius = UDim.new(1, 0)
+        local swStroke = Instance.new("UIStroke", sw)
+        swStroke.Color = isOn and Color3.fromRGB(124, 58, 237) or Color3.fromRGB(40, 30, 70)
+        swStroke.Thickness = 1.5
+        swStroke.Transparency = 0.3
+
+        local dot = Instance.new("Frame", sw)
+        dot.Size = UDim2.new(0, 12, 0, 12)
+        dot.Position = isOn and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)
+        dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        dot.BorderSizePixel = 0
+        Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+
+        local swBtn = Instance.new("TextButton", sw)
+        swBtn.Size = UDim2.new(1, 0, 1, 0)
+        swBtn.BackgroundTransparency = 1
+        swBtn.Text = ""
+
+        local state = isOn
+        local function SetState(s)
+            state = s
+            TweenService:Create(dot, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                Position = s and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)
+            }):Play()
+            TweenService:Create(sw, TweenInfo.new(0.2), {
+                BackgroundColor3 = s and Color3.fromRGB(60, 20, 120) or Color3.fromRGB(20, 14, 40)
+            }):Play()
+            TweenService:Create(swStroke, TweenInfo.new(0.2), {
+                Color = s and Color3.fromRGB(124, 58, 237) or Color3.fromRGB(40, 30, 70)
+            }):Play()
+        end
+
+        row.MouseEnter:Connect(function()
+            TweenService:Create(rowStroke, TweenInfo.new(0.15), {Color = Color3.fromRGB(124, 58, 237), Transparency = 0.2}):Play()
+        end)
+        row.MouseLeave:Connect(function()
+            TweenService:Create(rowStroke, TweenInfo.new(0.15), {Color = Color3.fromRGB(40, 30, 70), Transparency = 0.4}):Play()
+        end)
+
+        swBtn.MouseButton1Click:Connect(function()
+            onToggle(not state, SetState)
+        end)
+
+        return SetState
+    end
+
+    -- Auto Kick Toggle
+    MakeQTRow("Auto Kick", Config.AutoKickOnSteal, function(ns, set)
+        Config.AutoKickOnSteal = ns
+        SaveConfig()
+        set(ns)
+        ShowNotification("QUICK", "Auto Kick: " .. (ns and "ON" or "OFF"))
+    end)
+
+    -- Auto Turret Toggle
+    MakeQTRow("Auto Turret", Config.AutoDestroyTurrets, function(ns, set)
+        Config.AutoDestroyTurrets = ns
+        SaveConfig()
+        set(ns)
+        ShowNotification("QUICK", "Auto Turret: " .. (ns and "ON" or "OFF"))
+    end)
+
+    -- Auto Steal Speed Toggle
+    MakeQTRow("Auto Steal Spd", Config.AutoStealSpeed, function(ns, set)
+        Config.AutoStealSpeed = ns
+        SaveConfig()
+        set(ns)
+        ShowNotification("QUICK", "Auto Steal Speed: " .. (ns and "ON" or "OFF"))
+    end)
+
+    -- Hide Admin Panel Toggle
+    MakeQTRow("Hide Admin", Config.HideAdminPanel, function(ns, set)
+        Config.HideAdminPanel = ns
+        SaveConfig()
+        set(ns)
+        local adUI = PlayerGui:FindFirstChild("XiAdminPanel")
+        if adUI then adUI.Enabled = not ns end
+        ShowNotification("QUICK", "Admin Panel: " .. (ns and "HIDDEN" or "VISIBLE"))
+    end)
+
+    -- Settings Toggle row
+    MakeQTRow("Settings GUI", true, function(ns, set)
+        set(ns)
+        if settingsGui then
+            settingsGui.Enabled = ns
+        end
+        ShowNotification("QUICK", "Settings: " .. (ns and "SHOWN" or "HIDDEN"))
+    end)
+
+    -- Resize frame to fit content
+    qtLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        qtFrame.Size = UDim2.new(0, 200, 0, qtLayout.AbsoluteContentSize.Y + 52)
+    end)
+end)
+
+-- ── GALAXY PARTICLES (GUI ONLY) ───────────────────────────────────────
+task.spawn(function()
+    local GUI_NAMES = {
+        "AutoStealUI",
+        "XiAdminPanel", 
+        "SettingsUI",
+        "StealSpeedUI",
+        "XiInvisPanel",
+        "XiDesyncPanel",
+        "XiStealProgress",
+        "XiQuickToggles",
+    }
+
+    local function addGalaxyToGui(guiName)
+        task.spawn(function()
+            local targetGui = PlayerGui:WaitForChild(guiName, 10)
+            if not targetGui then return end
+
+            -- Find the main frame inside
+            local mainFrame = nil
+            for _, child in ipairs(targetGui:GetChildren()) do
+                if child:IsA("Frame") then
+                    mainFrame = child
+                    break
+                end
+            end
+            if not mainFrame then return end
+
+            -- Galaxy canvas sits behind everything
+            local galaxyCanvas = Instance.new("Frame", mainFrame)
+            galaxyCanvas.Name = "GalaxyCanvas"
+            galaxyCanvas.Size = UDim2.new(1, 0, 1, 0)
+            galaxyCanvas.BackgroundTransparency = 1
+            galaxyCanvas.BorderSizePixel = 0
+            galaxyCanvas.ZIndex = 0
+            galaxyCanvas.ClipsDescendants = true
+
+            local stars = {}
+            local MAX_STARS = 35
+
+            local function randomFloat(a, b) return a + math.random() * (b - a) end
+
+            local STAR_COLORS = {
+                Color3.fromRGB(255, 255, 255),
+                Color3.fromRGB(255, 255, 255),
+                Color3.fromRGB(255, 255, 255),
+                Color3.fromRGB(196, 181, 253),
+                Color3.fromRGB(6, 182, 212),
+                Color3.fromRGB(219, 39, 119),
+                Color3.fromRGB(124, 58, 237),
+            }
+
+            local function spawnStar()
+                if #stars >= MAX_STARS then return end
+                if not galaxyCanvas.Parent then return end
+
+                local size = randomFloat(1.5, 4)
+                local star = Instance.new("Frame", galaxyCanvas)
+                star.Size = UDim2.new(0, size, 0, size)
+                star.Position = UDim2.new(math.random(), 0, math.random(), 0)
+                star.BackgroundColor3 = STAR_COLORS[math.random(1, #STAR_COLORS)]
+                star.BackgroundTransparency = randomFloat(0.2, 0.7)
+                star.BorderSizePixel = 0
+                star.ZIndex = 1
+                Instance.new("UICorner", star).CornerRadius = UDim.new(1, 0)
+
+                local speed = randomFloat(0.015, 0.04)
+                local drift = randomFloat(-0.008, 0.008)
+                local twinkleSpeed = randomFloat(0.5, 2)
+                local twinkleOffset = randomFloat(0, math.pi * 2)
+                local baseTransparency = randomFloat(0.2, 0.6)
+
+                table.insert(stars, {
+                    frame = star,
+                    x = star.Position.X.Scale,
+                    y = star.Position.Y.Scale,
+                    speed = speed,
+                    drift = drift,
+                    twinkleSpeed = twinkleSpeed,
+                    twinkleOffset = twinkleOffset,
+                    baseTransparency = baseTransparency,
+                    time = 0,
+                })
+            end
+
+            -- Spawn initial stars
+            for i = 1, MAX_STARS do
+                spawnStar()
+            end
+
+            local spawnTimer = 0
+            local conn = RunService.Heartbeat:Connect(function(dt)
+                if not galaxyCanvas.Parent or not mainFrame.Parent then
+                    conn:Disconnect()
+                    return
+                end
+
+                spawnTimer = spawnTimer + dt
+                if spawnTimer >= 0.3 and #stars < MAX_STARS then
+                    spawnTimer = 0
+                    spawnStar()
+                end
+
+                local i = 1
+                while i <= #stars do
+                    local s = stars[i]
+                    if not s.frame or not s.frame.Parent then
+                        table.remove(stars, i)
+                        continue
+                    end
+
+                    s.time = s.time + dt
+                    s.y = s.y + s.speed * dt * 0.3
+                    s.x = s.x + s.drift * dt
+
+                    -- Wrap around
+                    if s.y > 1.01 then s.y = -0.01 end
+                    if s.x > 1.01 then s.x = 0 end
+                    if s.x < -0.01 then s.x = 1 end
+
+                    s.frame.Position = UDim2.new(s.x, 0, s.y, 0)
+
+                    -- Twinkle effect
+                    local twinkle = math.sin(s.time * s.twinkleSpeed + s.twinkleOffset)
+                    local trans = math.clamp(s.baseTransparency + twinkle * 0.3, 0.05, 0.9)
+                    s.frame.BackgroundTransparency = trans
+
+                    i = i + 1
+                end
+            end)
+
+            -- Occasional shooting star effect
+            task.spawn(function()
+                while galaxyCanvas.Parent do
+                    task.wait(randomFloat(4, 10))
+                    if not galaxyCanvas.Parent then break end
+
+                    local shootStar = Instance.new("Frame", galaxyCanvas)
+                    shootStar.Size = UDim2.new(0, randomFloat(30, 80), 0, 1.5)
+                    local startX = randomFloat(0, 0.8)
+                    local startY = randomFloat(0, 0.5)
+                    shootStar.Position = UDim2.new(startX, 0, startY, 0)
+                    shootStar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                    shootStar.BackgroundTransparency = 0.1
+                    shootStar.BorderSizePixel = 0
+                    shootStar.ZIndex = 2
+                    shootStar.Rotation = randomFloat(15, 45)
+                    local shootGrad = Instance.new("UIGradient", shootStar)
+                    shootGrad.Color = ColorSequence.new{
+                        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+                        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+                    }
+                    shootGrad.Transparency = NumberSequence.new{
+                        NumberSequenceKeypoint.new(0, 0),
+                        NumberSequenceKeypoint.new(1, 1)
+                    }
+                    Instance.new("UICorner", shootStar).CornerRadius = UDim.new(1, 0)
+
+                    -- Animate shooting star
+                    TweenService:Create(shootStar, TweenInfo.new(0.6, Enum.EasingStyle.Linear), {
+                        Position = UDim2.new(startX + 0.15, 0, startY + 0.1, 0),
+                        BackgroundTransparency = 1
+                    }):Play()
+
+                    task.delay(0.7, function()
+                        if shootStar and shootStar.Parent then
+                            shootStar:Destroy()
+                        end
+                    end)
+                end
+            end)
+        end)
+    end
+
+    -- Add galaxy to all GUIs
+    for _, name in ipairs(GUI_NAMES) do
+        addGalaxyToGui(name)
+    end
 end)
