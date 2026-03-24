@@ -1668,8 +1668,8 @@ task.spawn(function()
     local titleLabel = Instance.new("TextLabel", header)
     titleLabel.Size = IS_MOBILE and UDim2.new(0.4, 0, 1, 0) or UDim2.new(0.6, 0, 1, 0)
     titleLabel.Position = UDim2.new(0, 14, 0, 0)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = "STEAL HELPER"
+    titleLabel.BackgroundTransparency = 0.5
+    titleLabel.Text = "Lethal - Auto Steal."
     titleLabel.Font = Enum.Font.GothamBlack
     titleLabel.TextSize = 15
     titleLabel.TextColor3 = Color3.fromRGB(200, 180, 255)
@@ -1785,7 +1785,7 @@ task.spawn(function()
     thumbEmoji.Name = "TargetEmoji"
     thumbEmoji.Size = UDim2.new(1, 0, 1, 0)
     thumbEmoji.BackgroundTransparency = 1
-    thumbEmoji.Text = "🎯"
+    thumbEmoji.Text = " "
     thumbEmoji.TextSize = 22
     thumbEmoji.Font = Enum.Font.GothamBold
     thumbEmoji.TextXAlignment = Enum.TextXAlignment.Center
@@ -8875,7 +8875,7 @@ task.spawn(function()
     qtTitle.Size = UDim2.new(1, -40, 1, 0)
     qtTitle.Position = UDim2.new(0, 10, 0, 0)
     qtTitle.BackgroundTransparency = 1
-    qtTitle.Text = "⚡ QUICK"
+    qtTitle.Text = "⚡ Steal Tools"
     qtTitle.Font = Enum.Font.GothamBlack
     qtTitle.TextSize = 13
     qtTitle.TextColor3 = Color3.fromRGB(200, 180, 255)
@@ -8887,7 +8887,7 @@ task.spawn(function()
     qtClose.Position = UDim2.new(1, -28, 0.5, -12)
     qtClose.BackgroundColor3 = Color3.fromRGB(219, 39, 119)
     qtClose.BackgroundTransparency = 0.3
-    qtClose.Text = "✕"
+    qtClose.Text = "X"
     qtClose.Font = Enum.Font.GothamBlack
     qtClose.TextSize = 12
     qtClose.TextColor3 = Color3.fromRGB(255, 255, 255)
