@@ -1669,7 +1669,7 @@ task.spawn(function()
     titleLabel.Size = IS_MOBILE and UDim2.new(0.4, 0, 1, 0) or UDim2.new(0.6, 0, 1, 0)
     titleLabel.Position = UDim2.new(0, 14, 0, 0)
     titleLabel.BackgroundTransparency = 0.5
-    titleLabel.Text = "Lethal - Auto Steal."
+    titleLabel.Text = "LETHAL STEALER"
     titleLabel.Font = Enum.Font.GothamBlack
     titleLabel.TextSize = 15
     titleLabel.TextColor3 = Color3.fromRGB(200, 180, 255)
@@ -9198,7 +9198,7 @@ task.spawn(function()
                     local startY = randomFloat(0, 0.5)
                     shootStar.Position = UDim2.new(startX, 0, startY, 0)
                     shootStar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                    shootStar.BackgroundTransparency = 0.1
+                    shootStar.BackgroundTransprency = 0.1
                     shootStar.BorderSizePixel = 0
                     shootStar.ZIndex = 2
                     shootStar.Rotation = randomFloat(15, 45)
