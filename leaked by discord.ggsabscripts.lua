@@ -8874,7 +8874,7 @@ task.spawn(function()
     qtTitle.Size = UDim2.new(1, -40, 1, 0)
     qtTitle.Position = UDim2.new(0, 10, 0, 0)
     qtTitle.BackgroundTransparency = 1
-    qtTitle.Text = "⚡ QUICK"
+    qtTitle.Text = "⚡ Steal Tools"
     qtTitle.Font = Enum.Font.GothamBlack
     qtTitle.TextSize = 13
     qtTitle.TextColor3 = Color3.fromRGB(200, 180, 255)
