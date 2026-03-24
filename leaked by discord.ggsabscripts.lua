@@ -1668,7 +1668,7 @@ task.spawn(function()
     local titleLabel = Instance.new("TextLabel", header)
     titleLabel.Size = IS_MOBILE and UDim2.new(0.4, 0, 1, 0) or UDim2.new(0.6, 0, 1, 0)
     titleLabel.Position = UDim2.new(0, 14, 0, 0)
-    titleLabel.BackgroundTransparency = 0.5
+    titleLabel.BackgroundTransparency = 1
     titleLabel.Text = "STEAL HELPER"
     titleLabel.Font = Enum.Font.GothamBlack
     titleLabel.TextSize = 15
@@ -1785,7 +1785,7 @@ task.spawn(function()
     thumbEmoji.Name = "TargetEmoji"
     thumbEmoji.Size = UDim2.new(1, 0, 1, 0)
     thumbEmoji.BackgroundTransparency = 1
-    thumbEmoji.Text = " "
+    thumbEmoji.Text = "🎯"
     thumbEmoji.TextSize = 22
     thumbEmoji.Font = Enum.Font.GothamBold
     thumbEmoji.TextXAlignment = Enum.TextXAlignment.Center
@@ -4799,8 +4799,8 @@ end)
             end
         end
     end)
-    
-    -- Resize handle
+
+	-- Resize handle
 local resizeHandle = Instance.new("TextButton", frame)
 resizeHandle.Size = UDim2.new(0, 18, 0, 18)
 resizeHandle.Position = UDim2.new(1, -20, 1, -20)
@@ -4824,17 +4824,16 @@ resizeHandle.InputBegan:Connect(function(inp)
         resizeStart = Vector2.new(inp.Position.X, inp.Position.Y)
         sizeStart = Vector2.new(frame.AbsoluteSize.X, frame.AbsoluteSize.Y)
     end
+end)	
+    
+    layout.Changed:Connect(function() listFrame.CanvasSize = UDim2.new(0,0,0, layout.AbsoluteContentSize.Y) end)
 end)
+
 UserInputService.InputEnded:Connect(function(inp)
     if inp.UserInputType == Enum.UserInputType.MouseButton1 then
         resizing = false
     end
 end)
-
-
-    layout.Changed:Connect(function() listFrame.CanvasSize = UDim2.new(0,0,0, layout.AbsoluteContentSize.Y) end)
-end)
-
 UserInputService.InputChanged:Connect(function(inp)
     if resizing and inp.UserInputType == Enum.UserInputType.MouseMovement then
         local delta = Vector2.new(inp.Position.X, inp.Position.Y) - resizeStart
@@ -8875,7 +8874,7 @@ task.spawn(function()
     qtTitle.Size = UDim2.new(1, -40, 1, 0)
     qtTitle.Position = UDim2.new(0, 10, 0, 0)
     qtTitle.BackgroundTransparency = 1
-    qtTitle.Text = "⚡ Steal Tools"
+    qtTitle.Text = "⚡ QUICK"
     qtTitle.Font = Enum.Font.GothamBlack
     qtTitle.TextSize = 13
     qtTitle.TextColor3 = Color3.fromRGB(200, 180, 255)
@@ -8887,7 +8886,7 @@ task.spawn(function()
     qtClose.Position = UDim2.new(1, -28, 0.5, -12)
     qtClose.BackgroundColor3 = Color3.fromRGB(219, 39, 119)
     qtClose.BackgroundTransparency = 0.3
-    qtClose.Text = "X"
+    qtClose.Text = "✕"
     qtClose.Font = Enum.Font.GothamBlack
     qtClose.TextSize = 12
     qtClose.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -9198,7 +9197,7 @@ task.spawn(function()
                     local startY = randomFloat(0, 0.5)
                     shootStar.Position = UDim2.new(startX, 0, startY, 0)
                     shootStar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                    shootStar.BackgroundTransprency = 0.1
+                    shootStar.BackgroundTransparency = 0.1
                     shootStar.BorderSizePixel = 0
                     shootStar.ZIndex = 2
                     shootStar.Rotation = randomFloat(15, 45)
