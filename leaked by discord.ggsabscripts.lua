@@ -5475,7 +5475,7 @@ local sTitle = Instance.new("TextLabel", sHeader)
 sTitle.Size = UDim2.new(0.6, 0, 1, 0)
 sTitle.Position = UDim2.new(0, 14, 0, 0)
 sTitle.BackgroundTransparency = 1
-sTitle.Text = "SETTINGS"
+sTitle.Text = "Lethal - Hub "
 sTitle.Font = Enum.Font.GothamBlack
 sTitle.TextSize = 15
 sTitle.TextColor3 = Color3.fromRGB(200, 180, 255)
@@ -8886,7 +8886,7 @@ task.spawn(function()
     qtClose.Position = UDim2.new(1, -28, 0.5, -12)
     qtClose.BackgroundColor3 = Color3.fromRGB(219, 39, 119)
     qtClose.BackgroundTransparency = 0.3
-    qtClose.Text = "✕"
+    qtClose.Text = "❌"
     qtClose.Font = Enum.Font.GothamBlack
     qtClose.TextSize = 12
     qtClose.TextColor3 = Color3.fromRGB(255, 255, 255)
