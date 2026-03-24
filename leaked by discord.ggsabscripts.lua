@@ -4800,10 +4800,7 @@ end)
         end
     end)
     
-    layout.Changed:Connect(function() listFrame.CanvasSize = UDim2.new(0,0,0, layout.AbsoluteContentSize.Y) end)
-end)
-
--- Resize handle
+    -- Resize handle
 local resizeHandle = Instance.new("TextButton", frame)
 resizeHandle.Size = UDim2.new(0, 18, 0, 18)
 resizeHandle.Position = UDim2.new(1, -20, 1, -20)
@@ -4833,6 +4830,11 @@ UserInputService.InputEnded:Connect(function(inp)
         resizing = false
     end
 end)
+
+
+    layout.Changed:Connect(function() listFrame.CanvasSize = UDim2.new(0,0,0, layout.AbsoluteContentSize.Y) end)
+end)
+
 UserInputService.InputChanged:Connect(function(inp)
     if resizing and inp.UserInputType == Enum.UserInputType.MouseMovement then
         local delta = Vector2.new(inp.Position.X, inp.Position.Y) - resizeStart
