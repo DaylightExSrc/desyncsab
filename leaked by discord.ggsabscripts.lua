@@ -1669,7 +1669,7 @@ task.spawn(function()
     titleLabel.Size = IS_MOBILE and UDim2.new(0.4, 0, 1, 0) or UDim2.new(0.6, 0, 1, 0)
     titleLabel.Position = UDim2.new(0, 14, 0, 0)
     titleLabel.BackgroundTransparency = 0.5
-    titleLabel.Text = "LETHAL STEALER"
+    titleLabel.Text = "STEAL HELPER"
     titleLabel.Font = Enum.Font.GothamBlack
     titleLabel.TextSize = 15
     titleLabel.TextColor3 = Color3.fromRGB(200, 180, 255)
