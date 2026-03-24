@@ -1606,7 +1606,7 @@ task.spawn(function()
     frame.Parent = screenGui
 
     ApplyViewportUIScale(frame, 310, 640, 0.45, 0.8)
-    AddMobileMinimize(frame, "STEAL HELPER")
+    AddMobileMinimize(frame, "Lethals - Auto Steal")
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 16)
 
     -- Animated border stroke
