@@ -1206,13 +1206,13 @@ local function appendToBox(text)
 
     if _autoSubmit and _accumWords >= _submitThreshold then
         local scheduledAt = os.clock()
-        local submittedCode = _lastCode
         task.delay((_submitDelayMs/1000) + jitter(0.01, SUBMIT_DELAY_JITTER), function()
             if box and box.Parent then
                 setStatus("submitting...", T.Accent)
+                local submittedCode = box.Text
                 box:ReleaseFocus(true) -- simulates pressing Enter
-                local elapsedMs = math.floor((os.clock()-scheduledAt)*1000 + 0.5)
-                addConsoleEntry(elapsedMs.."ms · "..(submittedCode or "?"), T.Green)
+                local elapsedSec = (os.clock()-scheduledAt)
+                addConsoleEntry(string.format("%.2f · %s", elapsedSec, submittedCode ~= "" and submittedCode or "?"), T.Green)
                 task.delay(0.3, applyEnabledVisual)
             end
             _accumWords = 0
@@ -1368,9 +1368,10 @@ local function processGlobal(txt, sourceName)
     _seen[txt]=true
     task.delay(jitter(20,0.2), function() _seen[txt]=nil end)
 
-    addSammyHistory(txt)
-
     if isRiddle(txt) then
+        -- Reuses the exact same detection that decides what gets pasted —
+        -- if it's recognized as a riddle, it counts as a Sammy message.
+        addSammyHistory(txt)
         showRiddle("solving...",T.Dim)
         setStatus("riddle...",T.Purple)
         local ans=solveLocal(txt)
