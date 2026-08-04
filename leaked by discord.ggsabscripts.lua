@@ -4,6 +4,7 @@ local RunService        = game:GetService("RunService")
 local TweenService      = game:GetService("TweenService")
 local UserInputService  = game:GetService("UserInputService")
 local HttpService       = game:GetService("HttpService")
+local Stats             = game:GetService("Stats")
 
 local lp        = Players.LocalPlayer
 local playerGui = lp:WaitForChild("PlayerGui")
@@ -20,19 +21,12 @@ local _statsFound       = 0
 local _lastCode         = nil
 
 local _allMessagesMode  = false
-local _sammyMode        = false
 local _autoSubmit       = true
 local _submitThreshold  = 3
 local _submitDelayMs    = 0
 local _accumWords       = 0
 
-local SUBMIT_DELAY_JITTER = 0.35
-
-local SAMMY_NAME = "spydersammy"
-local function textMentionsSammy(txt)
-    if not txt then return false end
-    return tostring(txt):lower():find(SAMMY_NAME, 1, true) ~= nil
-end
+local SUBMIT_DELAY_JITTER = 0.01
 
 local function jitter(base, spreadPct)
     spreadPct = spreadPct or 0.25
@@ -71,11 +65,13 @@ local function Pad(p,t,b,l,r)
     pd.Parent=p; return pd
 end
 
+pcall(function() if game.CoreGui:FindFirstChild("InfinityCodeRedeemPRIVATE") then game.CoreGui.InfinityCodeRedeemPRIVATE:Destroy() end end)
+pcall(function() if playerGui:FindFirstChild("InfinityCodeRedeemPRIVATE") then playerGui.InfinityCodeRedeemPRIVATE:Destroy() end end)
 pcall(function() if game.CoreGui:FindFirstChild("RainyCodeRedeemer") then game.CoreGui.RainyCodeRedeemer:Destroy() end end)
 pcall(function() if playerGui:FindFirstChild("RainyCodeRedeemer") then playerGui.RainyCodeRedeemer:Destroy() end end)
 
 local GUI = Instance.new("ScreenGui")
-GUI.Name="RainyCodeRedeemer"; GUI.ResetOnSpawn=false; GUI.IgnoreGuiInset=true
+GUI.Name="InfinityCodeRedeemPRIVATE"; GUI.ResetOnSpawn=false; GUI.IgnoreGuiInset=true
 GUI.DisplayOrder=999
 -- Global ZIndexBehavior lets the starfield (low ZIndex) sit behind the
 -- panel (high ZIndex) even though both are parented to the ScreenGui.
@@ -85,8 +81,9 @@ if not pcall(function() GUI.Parent=game.CoreGui end) then GUI.Parent=playerGui e
 -- ============================================================
 -- STARFIELD  (twinkling dots behind the whole HUD)
 -- ============================================================
-local function createStarField(parent, count)
+local function createStarField(parent, count, zIndex)
     count = count or 70
+    zIndex = zIndex or 1
     for i=1,count do
         local size = math.random(1,3)
         local star = Instance.new("Frame")
@@ -95,7 +92,7 @@ local function createStarField(parent, count)
         star.Position = UDim2.new(math.random(), math.random(-4,4), math.random(), math.random(-4,4))
         star.BackgroundColor3 = T.Star
         star.BorderSizePixel = 0
-        star.ZIndex = 1
+        star.ZIndex = zIndex
         star.Parent = parent
         Corner(star, size)
 
@@ -118,6 +115,175 @@ local function createStarField(parent, count)
 end
 createStarField(GUI, 80)
 
+-- ============================================================
+-- BACKGROUND MUSIC
+-- Replace the SoundId below with your own owned/licensed track's
+-- asset id (rbxassetid://########). If the id is invalid, Play()
+-- just fails silently via pcall and the rest of the UI still works.
+-- ============================================================
+local Music = Instance.new("Sound")
+Music.Name = "BGMusic"
+Music.SoundId = "rbxassetid://142376088"
+Music.Volume = 0.35
+Music.Looped = true
+Music.Parent = GUI
+
+-- ============================================================
+-- LOADING SCREEN
+-- ============================================================
+local LoadingScreen = Instance.new("Frame")
+LoadingScreen.Name = "LoadingScreen"
+LoadingScreen.Size = UDim2.new(1,0,1,0)
+LoadingScreen.BackgroundColor3 = Color3.fromRGB(0,0,0)
+LoadingScreen.BackgroundTransparency = 0
+LoadingScreen.BorderSizePixel = 0
+LoadingScreen.ZIndex = 500
+LoadingScreen.Parent = GUI
+createStarField(LoadingScreen, 55, 501)
+
+local LogoWrap = Instance.new("Frame")
+LogoWrap.Size = UDim2.new(0,320,0,110)
+LogoWrap.AnchorPoint = Vector2.new(0.5,0.5)
+LogoWrap.Position = UDim2.new(0.5,0,0.44,0)
+LogoWrap.BackgroundTransparency = 1
+LogoWrap.ZIndex = 501
+LogoWrap.Parent = LoadingScreen
+
+local LogoTitle = Instance.new("TextLabel")
+LogoTitle.Size = UDim2.new(1,0,0,34)
+LogoTitle.BackgroundTransparency = 1
+LogoTitle.Text = "INFINITY"
+LogoTitle.TextSize = 30
+LogoTitle.Font = Enum.Font.GothamBlack
+LogoTitle.TextColor3 = Color3.fromRGB(255,255,255)
+LogoTitle.ZIndex = 502
+LogoTitle.Parent = LogoWrap
+
+local LogoSub = Instance.new("TextLabel")
+LogoSub.Size = UDim2.new(1,0,0,18)
+LogoSub.Position = UDim2.new(0,0,0,36)
+LogoSub.BackgroundTransparency = 1
+LogoSub.Text = "C O D E   R E D E E M"
+LogoSub.TextSize = 13
+LogoSub.Font = Enum.Font.GothamMedium
+LogoSub.TextColor3 = T.Accent
+LogoSub.ZIndex = 502
+LogoSub.Parent = LogoWrap
+
+local PrivateTag = Instance.new("TextLabel")
+PrivateTag.Size = UDim2.new(1,0,0,14)
+PrivateTag.Position = UDim2.new(0,0,0,58)
+PrivateTag.BackgroundTransparency = 1
+PrivateTag.Text = "P R I V A T E   A C C E S S"
+PrivateTag.TextSize = 10
+PrivateTag.Font = Enum.Font.GothamBold
+PrivateTag.TextColor3 = T.Purple
+PrivateTag.ZIndex = 502
+PrivateTag.Parent = LogoWrap
+
+local BarOuter = Instance.new("Frame")
+BarOuter.Size = UDim2.new(0,260,0,6)
+BarOuter.Position = UDim2.new(0.5,0,1,-6)
+BarOuter.AnchorPoint = Vector2.new(0.5,0)
+BarOuter.BackgroundColor3 = Color3.fromRGB(255,255,255)
+BarOuter.BackgroundTransparency = 0.88
+BarOuter.BorderSizePixel = 0
+BarOuter.ZIndex = 502
+BarOuter.Parent = LogoWrap
+Corner(BarOuter,3)
+
+local BarFill = Instance.new("Frame")
+BarFill.Size = UDim2.new(0,0,1,0)
+BarFill.BackgroundColor3 = T.Accent
+BarFill.BorderSizePixel = 0
+BarFill.ZIndex = 503
+BarFill.Parent = BarOuter
+Corner(BarFill,3)
+
+local PctLbl = Instance.new("TextLabel")
+PctLbl.Size = UDim2.new(0,200,0,14)
+PctLbl.Position = UDim2.new(0.5,0,1,6)
+PctLbl.AnchorPoint = Vector2.new(0.5,0)
+PctLbl.BackgroundTransparency = 1
+PctLbl.Text = "initializing"
+PctLbl.TextSize = 10
+PctLbl.Font = Enum.Font.GothamMedium
+PctLbl.TextColor3 = T.Dim
+PctLbl.ZIndex = 502
+PctLbl.Parent = BarOuter
+
+-- gentle breathing pulse on the logo while it loads
+task.spawn(function()
+    while LogoTitle and LogoTitle.Parent do
+        Tw(LogoTitle, TweenInfo.new(1.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {TextTransparency=0.35})
+        task.wait(1.1)
+        if not (LogoTitle and LogoTitle.Parent) then break end
+        Tw(LogoTitle, TweenInfo.new(1.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {TextTransparency=0})
+        task.wait(1.1)
+    end
+end)
+
+-- ============================================================
+-- SHOOTING STARS  (rare streaks across the loading screen — a
+-- couple per load, not a barrage)
+-- ============================================================
+local function spawnShootingStar(parent)
+    if not (parent and parent.Parent) then return end
+
+    local head = Instance.new("Frame")
+    head.Name = "ShootingStar"
+    head.AnchorPoint = Vector2.new(0.5,0.5)
+    head.Size = UDim2.new(0,3,0,3)
+    head.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    head.BackgroundTransparency = 0
+    head.BorderSizePixel = 0
+    head.Rotation = 32
+    head.ZIndex = 505
+    head.Parent = parent
+    Corner(head,2)
+
+    local trail = Instance.new("Frame")
+    trail.AnchorPoint = Vector2.new(1,0.5)
+    trail.Position = UDim2.new(0,0,0.5,0)
+    trail.Size = UDim2.new(0,64,0,2)
+    trail.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    trail.BorderSizePixel = 0
+    trail.ZIndex = 504
+    trail.Parent = head
+    local grad = Instance.new("UIGradient")
+    grad.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0,1),
+        NumberSequenceKeypoint.new(1,0.15),
+    })
+    grad.Parent = trail
+
+    local startX = math.random(-5,35)/100
+    local startY = math.random(-5,25)/100
+    head.Position = UDim2.new(startX,0,startY,0)
+
+    local dist = 0.4 + math.random()*0.18
+    local endX, endY = startX+dist, startY+dist
+
+    local dur = 0.65 + math.random()*0.35
+    Tw(head, TweenInfo.new(dur, Enum.EasingStyle.Linear), {Position=UDim2.new(endX,0,endY,0)})
+    task.delay(dur*0.55, function()
+        if head and head.Parent then
+            Tw(head, TweenInfo.new(dur*0.45), {BackgroundTransparency=1})
+            Tw(trail, TweenInfo.new(dur*0.45), {BackgroundTransparency=1})
+        end
+    end)
+    task.delay(dur+0.15, function() if head and head.Parent then head:Destroy() end end)
+end
+
+task.spawn(function()
+    while LoadingScreen and LoadingScreen.Parent do
+        task.wait(1.0 + math.random()*1.6)
+        if LoadingScreen and LoadingScreen.Parent then
+            spawnShootingStar(LoadingScreen)
+        end
+    end
+end)
+
 local WIN_W = 260
 
 local Win = Instance.new("Frame")
@@ -132,7 +298,8 @@ Win.BorderSizePixel=0
 Win.ZIndex=100
 Win.Active=true
 Win.Parent=GUI
-Corner(Win,14)
+Win.Visible=false
+Corner(Win,22)
 Stroke(Win, T.Border, 1)
 
 local WinList=Instance.new("UIListLayout")
@@ -169,11 +336,12 @@ end
 local Title=Instance.new("TextLabel")
 Title.Size=UDim2.new(1,0,0,16)
 Title.BackgroundTransparency=1
-Title.Text="rainy code redeemer  [F]"
-Title.TextSize=12
+Title.Text="infinity code redeem · private  [F]"
+Title.TextSize=11
 Title.Font=Enum.Font.GothamBold
 Title.TextColor3=T.White
 Title.TextXAlignment=Enum.TextXAlignment.Left
+Title.TextTruncate=Enum.TextTruncate.AtEnd
 Title.LayoutOrder=1
 Title.ZIndex=101
 Title.Parent=Win
@@ -193,7 +361,7 @@ StartBtn.TextColor3=T.White
 StartBtn.LayoutOrder=2
 StartBtn.ZIndex=101
 StartBtn.Parent=Win
-Corner(StartBtn,10)
+Corner(StartBtn,16)
 Stroke(StartBtn,T.Border,1)
 
 -- ============================================================
@@ -282,7 +450,7 @@ local function makeStepperRow(parent, order, labelText, valueText)
     minus.TextColor3=T.White
     minus.ZIndex=102
     minus.Parent=row
-    Corner(minus,6)
+    Corner(minus,9)
     Stroke(minus,T.Border,1)
 
     local val=Instance.new("TextLabel")
@@ -311,7 +479,7 @@ local function makeStepperRow(parent, order, labelText, valueText)
     plus.TextColor3=T.White
     plus.ZIndex=102
     plus.Parent=row
-    Corner(plus,6)
+    Corner(plus,9)
     Stroke(plus,T.Border,1)
 
     return {row=row, minus=minus, plus=plus, val=val}
@@ -392,9 +560,8 @@ local function makeSwitchRow(parent, order, labelText, onColor, initialOn)
     return row, sw
 end
 
-local _, AutoSwitch  = makeSwitchRow(Win, 6, "auto-on", T.Green, true)
-local _, AllSwitch   = makeSwitchRow(Win, 7, "all messages", T.Accent, false)
-local _, SammySwitch = makeSwitchRow(Win, 8, "sammy mode", T.Purple, false)
+local _, AutoSwitch     = makeSwitchRow(Win, 6, "auto-on", T.Green, true)
+local _, AllSwitch      = makeSwitchRow(Win, 7, "all messages", T.Accent, false)
 
 -- ============================================================
 -- RIDDLE POPUP (only shows while actively solving)
@@ -405,11 +572,11 @@ RiddleCard.AutomaticSize=Enum.AutomaticSize.Y
 RiddleCard.BackgroundColor3=T.Panel
 RiddleCard.BackgroundTransparency=PANEL_TRANSPARENCY
 RiddleCard.BorderSizePixel=0
-RiddleCard.LayoutOrder=9
+RiddleCard.LayoutOrder=8
 RiddleCard.Visible=false
 RiddleCard.ZIndex=101
 RiddleCard.Parent=Win
-Corner(RiddleCard,8)
+Corner(RiddleCard,14)
 Stroke(RiddleCard,T.Purple,1)
 Pad(RiddleCard,6,6,9,9)
 local RLL=Instance.new("UIListLayout")
@@ -443,14 +610,123 @@ RMsg.Parent=RiddleCard
 local Footer=Instance.new("TextLabel")
 Footer.Size=UDim2.new(1,0,0,10)
 Footer.BackgroundTransparency=1
-Footer.Text="rainy code redeemer"
+Footer.Text="infinity code redeem · private"
 Footer.TextSize=7
 Footer.Font=Enum.Font.GothamMedium
 Footer.TextColor3=T.Dim
 Footer.TextXAlignment=Enum.TextXAlignment.Center
-Footer.LayoutOrder=10
+Footer.LayoutOrder=9
 Footer.ZIndex=101
 Footer.Parent=Win
+
+-- ============================================================
+-- BOTTOM STATUS BANNER  (logo · branding · live fps/ping)
+-- ============================================================
+local Banner=Instance.new("Frame")
+Banner.Name="StatusBanner"
+Banner.Size=UDim2.new(0,300,0,32)
+Banner.AnchorPoint=Vector2.new(0.5,1)
+Banner.Position=UDim2.new(0.5,0,1,-14)
+Banner.BackgroundColor3=T.BG
+Banner.BackgroundTransparency=BG_TRANSPARENCY
+Banner.BorderSizePixel=0
+Banner.ZIndex=90
+Banner.Parent=GUI
+Corner(Banner,14)
+Stroke(Banner,T.Border,1)
+Pad(Banner,0,0,10,10)
+
+local BannerList=Instance.new("UIListLayout")
+BannerList.FillDirection=Enum.FillDirection.Horizontal
+BannerList.VerticalAlignment=Enum.VerticalAlignment.Center
+BannerList.Padding=UDim.new(0,8)
+BannerList.SortOrder=Enum.SortOrder.LayoutOrder
+BannerList.Parent=Banner
+
+local LogoBadge=Instance.new("Frame")
+LogoBadge.Size=UDim2.new(0,20,0,20)
+LogoBadge.BackgroundColor3=T.Accent
+LogoBadge.BackgroundTransparency=0.15
+LogoBadge.BorderSizePixel=0
+LogoBadge.LayoutOrder=1
+LogoBadge.ZIndex=91
+LogoBadge.Parent=Banner
+Corner(LogoBadge,7)
+
+local LogoGlyph=Instance.new("TextLabel")
+LogoGlyph.Size=UDim2.new(1,0,1,0)
+LogoGlyph.BackgroundTransparency=1
+LogoGlyph.Text="∞"
+LogoGlyph.TextSize=14
+LogoGlyph.Font=Enum.Font.GothamBlack
+LogoGlyph.TextColor3=Color3.fromRGB(255,255,255)
+LogoGlyph.ZIndex=92
+LogoGlyph.Parent=LogoBadge
+
+local BannerName=Instance.new("TextLabel")
+BannerName.Size=UDim2.new(0,150,1,0)
+BannerName.BackgroundTransparency=1
+BannerName.Text="Infinity's Code Redeemer"
+BannerName.TextSize=10.5
+BannerName.Font=Enum.Font.GothamBold
+BannerName.TextColor3=T.White
+BannerName.TextXAlignment=Enum.TextXAlignment.Left
+BannerName.TextTruncate=Enum.TextTruncate.AtEnd
+BannerName.LayoutOrder=2
+BannerName.ZIndex=91
+BannerName.Parent=Banner
+
+local FpsLbl=Instance.new("TextLabel")
+FpsLbl.Size=UDim2.new(0,52,1,0)
+FpsLbl.BackgroundTransparency=1
+FpsLbl.Text="FPS --"
+FpsLbl.TextSize=10
+FpsLbl.Font=Enum.Font.GothamMedium
+FpsLbl.TextColor3=T.Green
+FpsLbl.TextXAlignment=Enum.TextXAlignment.Right
+FpsLbl.LayoutOrder=3
+FpsLbl.ZIndex=91
+FpsLbl.Parent=Banner
+
+local PingLbl=Instance.new("TextLabel")
+PingLbl.Size=UDim2.new(0,68,1,0)
+PingLbl.BackgroundTransparency=1
+PingLbl.Text="PING --"
+PingLbl.TextSize=10
+PingLbl.Font=Enum.Font.GothamMedium
+PingLbl.TextColor3=T.Accent
+PingLbl.TextXAlignment=Enum.TextXAlignment.Right
+PingLbl.LayoutOrder=4
+PingLbl.ZIndex=91
+PingLbl.Parent=Banner
+
+-- live FPS readout, smoothed over ~0.5s windows
+do
+    local frames, clockStart = 0, os.clock()
+    RunService.RenderStepped:Connect(function()
+        frames += 1
+        local now = os.clock()
+        local elapsed = now - clockStart
+        if elapsed >= 0.5 then
+            local fps = math.floor((frames/elapsed) + 0.5)
+            FpsLbl.Text = "FPS "..fps
+            frames, clockStart = 0, now
+        end
+    end)
+end
+
+-- live ping readout, polled once a second
+task.spawn(function()
+    while true do
+        local ok, ping = pcall(function()
+            return Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+        end)
+        if ok and ping then
+            PingLbl.Text = "PING "..math.floor(ping).."ms"
+        end
+        task.wait(1)
+    end
+end)
 
 -- ============================================================
 -- UI HELPERS
@@ -519,16 +795,6 @@ end)
 AllSwitch.btn.MouseButton1Click:Connect(function()
     _allMessagesMode = not _allMessagesMode
     AllSwitch:set(_allMessagesMode)
-end)
-
-SammySwitch.btn.MouseButton1Click:Connect(function()
-    _sammyMode = not _sammyMode
-    SammySwitch:set(_sammyMode)
-    if _sammyMode then
-        setStatus("sammy only", T.Purple)
-    else
-        applyEnabledVisual()
-    end
 end)
 
 WordsRow.minus.MouseButton1Click:Connect(function()
@@ -674,10 +940,11 @@ local NOT_CODES = {
     SETTINGS=true, INVENTORY=true, LOADING=true, CONFIRM=true, CANCEL=true,
     REWARD=true, REWARDS=true, DAILY=true, WEEKLY=true, MONTHLY=true,
     PREMIUM=true, DISCORD=true, WEBSITE=true, FOLLOWERS=true, SUBSCRIBE=true,
-    LEADERBOARD=true, INVENTORY=true, BACKPACK=true, EQUIPPED=true,
+    LEADERBOARD=true, BACKPACK=true, EQUIPPED=true,
     PLEASE=true, WELCOME=true, WARNING=true, UPDATE=true, UPDATES=true,
-    -- common short/med UI words (still filtered by min length, kept here for safety)
     SHOP=true, MENU=true, TRADE=true, TRADING=true, CLOSE=true, OPEN=true,
+    -- reported false positives
+    UNCLAIMED=true, GLOBAL=true, AND=true, SEND=true,
 }
 
 local MIN_CODE_LEN, MAX_CODE_LEN = 1, 18
@@ -696,12 +963,9 @@ local function findCodeShape(raw)
     local len = #best
     if len < MIN_CODE_LEN or len > MAX_CODE_LEN then return false, nil end
 
-    -- Accept pure-numeric tokens too (best:upper() == best is true for
-    -- digit-only strings since upper() doesn't touch digits), not just
-    -- ones that contain at least one letter.
-    local isAllCaps = best == best:upper()
-    if not isAllCaps then return false, nil end
-
+    -- Case no longer matters here — detection runs whenever the script is
+    -- enabled (the start button is on), and should catch lowercase and
+    -- mixed-case tokens too, not just ALL CAPS ones.
     if NOT_CODES[best:upper()] then return false, nil end
 
     -- reject if the raw text has more than one real word in it — genuine
@@ -735,11 +999,6 @@ end
 local function processGlobal(txt, sourceName)
     if not _enabled then return end
     if not txt or type(txt)~="string" or #txt<2 then return end
-
-    if _sammyMode then
-        local fromSammy = (sourceName and textMentionsSammy(sourceName)) or textMentionsSammy(txt)
-        if not fromSammy then return end
-    end
 
     if _seen[txt] then return end
     _seen[txt]=true
@@ -814,7 +1073,7 @@ playerGui.DescendantAdded:Connect(function(obj)
     if obj:IsA("TextLabel") then
         local txt=obj.Text or ""
         local sourceName = obj.Name .. " " .. ((obj.Parent and obj.Parent.Name) or "")
-        local passesGate = _sammyMode or classify(obj)
+        local passesGate = classify(obj)
 
         if passesGate then
             watchLabel(obj)
@@ -822,7 +1081,7 @@ playerGui.DescendantAdded:Connect(function(obj)
         end
         obj:GetPropertyChangedSignal("Text"):Connect(function()
             local t=obj.Text or ""
-            if _sammyMode or classify(obj) then
+            if classify(obj) then
                 if not _watched[obj] then watchLabel(obj) end
                 processGlobal(t, sourceName)
             end
@@ -876,3 +1135,43 @@ end)
 
 refreshCounter()
 applyEnabledVisual()
+
+-- ============================================================
+-- RUN LOADING SEQUENCE → reveal HUD → start music
+-- ============================================================
+task.spawn(function()
+    local steps = {
+        {0.18, "initializing"},
+        {0.40, "loading modules"},
+        {0.62, "syncing codes"},
+        {0.85, "connecting"},
+        {1.00, "ready"},
+    }
+    for _,step in ipairs(steps) do
+        local target, label = step[1], step[2]
+        PctLbl.Text = label
+        Tw(BarFill, TweenInfo.new(0.5 + math.random()*0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size=UDim2.new(target,0,1,0)})
+        task.wait(0.55 + math.random()*0.4)
+    end
+    task.wait(0.4)
+
+    -- fade the loading screen out
+    Tw(LoadingScreen, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundTransparency=1})
+    for _,lbl in ipairs({LogoTitle, LogoSub, PrivateTag, PctLbl}) do
+        Tw(lbl, TweenInfo.new(0.4), {TextTransparency=1})
+    end
+    Tw(BarOuter, TweenInfo.new(0.4), {BackgroundTransparency=1})
+    Tw(BarFill, TweenInfo.new(0.4), {BackgroundTransparency=1})
+    task.wait(0.6)
+    LoadingScreen:Destroy()
+
+    -- reveal the HUD with a soft pop-in
+    Win.Visible = true
+    local scale = Instance.new("UIScale")
+    scale.Scale = 0.85
+    scale.Parent = Win
+    Tw(scale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale=1})
+
+    -- start music once the HUD is up
+    pcall(function() Music:Play() end)
+end)
