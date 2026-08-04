@@ -26,6 +26,8 @@ local _submitThreshold  = 3
 local _submitDelayMs    = 0
 local _accumWords       = 0
 
+local _consoleLogs = {} -- timing entries, newest first, capped at 5
+
 local SUBMIT_DELAY_JITTER = 0.01
 
 local function jitter(base, spreadPct)
@@ -80,7 +82,27 @@ if not pcall(function() GUI.Parent=game.CoreGui end) then GUI.Parent=playerGui e
 
 -- ============================================================
 -- STARFIELD  (twinkling dots behind the whole HUD)
+-- Driven by ONE Heartbeat connection instead of a coroutine+tween
+-- per star — with 100+ stars that was a lot of scheduled work for
+-- something purely decorative. This version just does cheap sine
+-- math per star per frame, which is far lighter on the engine.
 -- ============================================================
+local _starRegistry = {}
+
+RunService.Heartbeat:Connect(function()
+    local now = os.clock()
+    for i=#_starRegistry,1,-1 do
+        local s = _starRegistry[i]
+        local f = s.frame
+        if f and f.Parent then
+            local wave = (math.sin(now*s.speed + s.phase) + 1) * 0.5
+            f.BackgroundTransparency = s.minT + wave*(s.maxT - s.minT)
+        else
+            table.remove(_starRegistry, i)
+        end
+    end
+end)
+
 local function createStarField(parent, count, zIndex)
     count = count or 70
     zIndex = zIndex or 1
@@ -99,21 +121,16 @@ local function createStarField(parent, count, zIndex)
         local minT, maxT = 0.15, 0.9
         star.BackgroundTransparency = minT + math.random()*(maxT-minT)
 
-        task.spawn(function()
-            -- stagger start so stars don't all twinkle in sync
-            task.wait(math.random()*2)
-            while star and star.Parent do
-                local dur = 1.1 + math.random()*2.4
-                Tw(star, TweenInfo.new(dur, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundTransparency = maxT})
-                task.wait(dur)
-                if not (star and star.Parent) then break end
-                Tw(star, TweenInfo.new(dur, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundTransparency = minT})
-                task.wait(dur)
-            end
-        end)
+        table.insert(_starRegistry, {
+            frame = star,
+            phase = math.random()*math.pi*2,
+            speed = 0.35 + math.random()*0.45,
+            minT = minT,
+            maxT = maxT,
+        })
     end
 end
-createStarField(GUI, 80)
+createStarField(GUI, 60)
 
 -- ============================================================
 -- BACKGROUND MUSIC
@@ -139,18 +156,53 @@ LoadingScreen.BackgroundTransparency = 0
 LoadingScreen.BorderSizePixel = 0
 LoadingScreen.ZIndex = 500
 LoadingScreen.Parent = GUI
-createStarField(LoadingScreen, 55, 501)
+createStarField(LoadingScreen, 30, 501)
 
 local LogoWrap = Instance.new("Frame")
-LogoWrap.Size = UDim2.new(0,320,0,110)
+LogoWrap.Size = UDim2.new(0,320,0,168)
 LogoWrap.AnchorPoint = Vector2.new(0.5,0.5)
 LogoWrap.Position = UDim2.new(0.5,0,0.44,0)
 LogoWrap.BackgroundTransparency = 1
 LogoWrap.ZIndex = 501
 LogoWrap.Parent = LoadingScreen
 
+-- pop the whole logo block in on load, instead of just appearing
+local LogoWrapScale = Instance.new("UIScale")
+LogoWrapScale.Scale = 0.6
+LogoWrapScale.Parent = LogoWrap
+Tw(LogoWrapScale, TweenInfo.new(0.55, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale=1})
+
+-- ============================================================
+-- CIRCULAR SPINNER  (thin rotating ring, fading tail via gradient)
+-- ============================================================
+local SpinnerRing = Instance.new("Frame")
+SpinnerRing.Size = UDim2.new(0,50,0,50)
+SpinnerRing.AnchorPoint = Vector2.new(0.5,0)
+SpinnerRing.Position = UDim2.new(0.5,0,0,0)
+SpinnerRing.BackgroundTransparency = 1
+SpinnerRing.ZIndex = 502
+SpinnerRing.Parent = LogoWrap
+Corner(SpinnerRing, 25)
+local SpinnerStroke = Stroke(SpinnerRing, T.Accent, 3)
+local SpinnerGrad = Instance.new("UIGradient")
+SpinnerGrad.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0),
+    NumberSequenceKeypoint.new(0.65, 0.55),
+    NumberSequenceKeypoint.new(1, 1),
+})
+SpinnerGrad.Parent = SpinnerStroke
+
+-- pop the ring in slightly after the block, then keep it spinning
+SpinnerRing.Size = UDim2.new(0,0,0,0)
+Tw(SpinnerRing, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size=UDim2.new(0,50,0,50)})
+local _spinnerConn
+_spinnerConn = RunService.RenderStepped:Connect(function(dt)
+    SpinnerGrad.Rotation = (SpinnerGrad.Rotation + dt*260) % 360
+end)
+
 local LogoTitle = Instance.new("TextLabel")
 LogoTitle.Size = UDim2.new(1,0,0,34)
+LogoTitle.Position = UDim2.new(0,0,0,60)
 LogoTitle.BackgroundTransparency = 1
 LogoTitle.Text = "INFINITY"
 LogoTitle.TextSize = 30
@@ -161,7 +213,7 @@ LogoTitle.Parent = LogoWrap
 
 local LogoSub = Instance.new("TextLabel")
 LogoSub.Size = UDim2.new(1,0,0,18)
-LogoSub.Position = UDim2.new(0,0,0,36)
+LogoSub.Position = UDim2.new(0,0,0,96)
 LogoSub.BackgroundTransparency = 1
 LogoSub.Text = "C O D E   R E D E E M"
 LogoSub.TextSize = 13
@@ -172,7 +224,7 @@ LogoSub.Parent = LogoWrap
 
 local PrivateTag = Instance.new("TextLabel")
 PrivateTag.Size = UDim2.new(1,0,0,14)
-PrivateTag.Position = UDim2.new(0,0,0,58)
+PrivateTag.Position = UDim2.new(0,0,0,118)
 PrivateTag.BackgroundTransparency = 1
 PrivateTag.Text = "P R I V A T E   A C C E S S"
 PrivateTag.TextSize = 10
@@ -211,6 +263,16 @@ PctLbl.Font = Enum.Font.GothamMedium
 PctLbl.TextColor3 = T.Dim
 PctLbl.ZIndex = 502
 PctLbl.Parent = BarOuter
+
+-- small pop each time the status label changes text (called from the
+-- loading sequence below via PopLabel(PctLbl, newText))
+local PctLblScale = Instance.new("UIScale")
+PctLblScale.Parent = PctLbl
+local function PopLabel(lbl, scaleInst, text)
+    lbl.Text = text
+    scaleInst.Scale = 0.8
+    Tw(scaleInst, TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale=1})
+end
 
 -- gentle breathing pulse on the logo while it loads
 task.spawn(function()
@@ -293,14 +355,36 @@ Win.AutomaticSize=Enum.AutomaticSize.Y
 Win.AnchorPoint=Vector2.new(0.5,0)
 Win.Position=UDim2.new(0.5,0,0,110)
 Win.BackgroundColor3=T.BG
-Win.BackgroundTransparency=BG_TRANSPARENCY
+-- Fully opaque black at rest. It only becomes see-through the moment
+-- you actually start dragging it (see the drag block below), and
+-- snaps back to solid black the instant you let go.
+Win.BackgroundTransparency=0
 Win.BorderSizePixel=0
 Win.ZIndex=100
 Win.Active=true
 Win.Parent=GUI
 Win.Visible=false
 Corner(Win,22)
-Stroke(Win, T.Border, 1)
+local WinGlow = Stroke(Win, T.Accent, 1.6)
+local WinGlowGrad = Instance.new("UIGradient")
+WinGlowGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0,   T.Accent),
+    ColorSequenceKeypoint.new(0.5, T.Purple),
+    ColorSequenceKeypoint.new(1,   T.Accent),
+})
+WinGlowGrad.Parent = WinGlow
+RunService.RenderStepped:Connect(function(dt)
+    WinGlowGrad.Rotation = (WinGlowGrad.Rotation + dt*50) % 360
+end)
+task.spawn(function()
+    while WinGlow and WinGlow.Parent do
+        Tw(WinGlow, TweenInfo.new(1.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Thickness=2.4, Transparency=0.1})
+        task.wait(1.6)
+        if not (WinGlow and WinGlow.Parent) then break end
+        Tw(WinGlow, TweenInfo.new(1.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Thickness=1.2, Transparency=0.5})
+        task.wait(1.6)
+    end
+end)
 
 local WinList=Instance.new("UIListLayout")
 WinList.FillDirection=Enum.FillDirection.Vertical
@@ -310,6 +394,10 @@ WinList.Parent=Win
 Pad(Win,18,20,18,18)
 
 -- drag by the window itself (no separate header bar, matches reference)
+-- Panel is solid black at rest. As soon as movement crosses the drag
+-- threshold it fades to the translucent theme look (BG_TRANSPARENCY)
+-- so you can see what's underneath while repositioning it, then fades
+-- back to solid black the moment you release.
 do
     local drag,ds,ws,mv
     Win.InputBegan:Connect(function(inp)
@@ -318,13 +406,21 @@ do
         end
     end)
     Win.InputEnded:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then drag=false end
+        if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
+            drag=false
+            if mv then
+                Tw(Win, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency=0})
+            end
+        end
     end)
     UserInputService.InputChanged:Connect(function(inp)
         if drag and (inp.UserInputType==Enum.UserInputType.MouseMovement or inp.UserInputType==Enum.UserInputType.Touch) then
             local d=inp.Position-ds
             if not mv and d.Magnitude<6 then return end
-            mv=true
+            if not mv then
+                mv=true
+                Tw(Win, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency=BG_TRANSPARENCY})
+            end
             Win.Position=UDim2.new(ws.X.Scale,ws.X.Offset+d.X,ws.Y.Scale,ws.Y.Offset+d.Y)
         end
     end)
@@ -347,6 +443,76 @@ Title.ZIndex=101
 Title.Parent=Win
 
 -- ============================================================
+-- TABS  (main / settings)
+-- ============================================================
+local TabBar=Instance.new("Frame")
+TabBar.Size=UDim2.new(1,0,0,26)
+TabBar.BackgroundTransparency=1
+TabBar.LayoutOrder=2
+TabBar.ZIndex=101
+TabBar.Parent=Win
+local TabList=Instance.new("UIListLayout")
+TabList.FillDirection=Enum.FillDirection.Horizontal
+TabList.Padding=UDim.new(0,6)
+TabList.Parent=TabBar
+
+local function makeTabButton(text, order)
+    local b=Instance.new("TextButton")
+    b.Size=UDim2.new(0.5,-3,1,0)
+    b.BackgroundColor3=T.Panel
+    b.BackgroundTransparency=PANEL_TRANSPARENCY
+    b.AutoButtonColor=false
+    b.Text=text
+    b.TextSize=10.5
+    b.Font=Enum.Font.GothamBold
+    b.TextColor3=T.White
+    b.LayoutOrder=order
+    b.ZIndex=102
+    b.Parent=TabBar
+    Corner(b,10)
+    Stroke(b,T.Border,1)
+    return b
+end
+local MainTabBtn     = makeTabButton("main", 1)
+local SettingsTabBtn = makeTabButton("settings", 2)
+
+local MainTab=Instance.new("Frame")
+MainTab.Size=UDim2.new(1,0,0,0)
+MainTab.AutomaticSize=Enum.AutomaticSize.Y
+MainTab.BackgroundTransparency=1
+MainTab.LayoutOrder=3
+MainTab.ZIndex=101
+MainTab.Parent=Win
+local MainTabList=Instance.new("UIListLayout")
+MainTabList.FillDirection=Enum.FillDirection.Vertical
+MainTabList.Padding=UDim.new(0,14)
+MainTabList.Parent=MainTab
+
+local SettingsTab=Instance.new("Frame")
+SettingsTab.Size=UDim2.new(1,0,0,0)
+SettingsTab.AutomaticSize=Enum.AutomaticSize.Y
+SettingsTab.BackgroundTransparency=1
+SettingsTab.LayoutOrder=3
+SettingsTab.Visible=false
+SettingsTab.ZIndex=101
+SettingsTab.Parent=Win
+local SettingsTabList=Instance.new("UIListLayout")
+SettingsTabList.FillDirection=Enum.FillDirection.Vertical
+SettingsTabList.Padding=UDim.new(0,14)
+SettingsTabList.Parent=SettingsTab
+
+local function selectTab(which)
+    local mainOn = which=="main"
+    MainTab.Visible = mainOn
+    SettingsTab.Visible = not mainOn
+    Tw(MainTabBtn, F, {BackgroundTransparency = mainOn and (PANEL_TRANSPARENCY-0.35) or PANEL_TRANSPARENCY, TextColor3 = mainOn and T.Accent or T.Dim})
+    Tw(SettingsTabBtn, F, {BackgroundTransparency = (not mainOn) and (PANEL_TRANSPARENCY-0.35) or PANEL_TRANSPARENCY, TextColor3 = (not mainOn) and T.Accent or T.Dim})
+end
+MainTabBtn.MouseButton1Click:Connect(function() selectTab("main") end)
+SettingsTabBtn.MouseButton1Click:Connect(function() selectTab("settings") end)
+selectTab("main")
+
+-- ============================================================
 -- START / STOP BUTTON
 -- ============================================================
 local StartBtn=Instance.new("TextButton")
@@ -358,9 +524,9 @@ StartBtn.Text="start"
 StartBtn.TextSize=13
 StartBtn.Font=Enum.Font.GothamBold
 StartBtn.TextColor3=T.White
-StartBtn.LayoutOrder=2
+StartBtn.LayoutOrder=1
 StartBtn.ZIndex=101
-StartBtn.Parent=Win
+StartBtn.Parent=MainTab
 Corner(StartBtn,16)
 Stroke(StartBtn,T.Border,1)
 
@@ -370,9 +536,9 @@ Stroke(StartBtn,T.Border,1)
 local StatusWrap=Instance.new("Frame")
 StatusWrap.Size=UDim2.new(1,0,0,34)
 StatusWrap.BackgroundTransparency=1
-StatusWrap.LayoutOrder=3
+StatusWrap.LayoutOrder=2
 StatusWrap.ZIndex=101
-StatusWrap.Parent=Win
+StatusWrap.Parent=MainTab
 local SWList=Instance.new("UIListLayout")
 SWList.FillDirection=Enum.FillDirection.Vertical
 SWList.Padding=UDim.new(0,3)
@@ -485,8 +651,25 @@ local function makeStepperRow(parent, order, labelText, valueText)
     return {row=row, minus=minus, plus=plus, val=val}
 end
 
-local WordsRow = makeStepperRow(Win, 4, "words", "3")
-local DelayRow = makeStepperRow(Win, 5, "delay", "0ms")
+-- small dim section header used inside the settings tab
+local function makeSectionLabel(parent, order, text)
+    local lbl=Instance.new("TextLabel")
+    lbl.Size=UDim2.new(1,0,0,12)
+    lbl.BackgroundTransparency=1
+    lbl.Text=text
+    lbl.TextSize=8.5
+    lbl.Font=Enum.Font.GothamBold
+    lbl.TextColor3=T.Purple
+    lbl.TextXAlignment=Enum.TextXAlignment.Left
+    lbl.LayoutOrder=order
+    lbl.ZIndex=101
+    lbl.Parent=parent
+    return lbl
+end
+
+makeSectionLabel(SettingsTab, 1, "D E T E C T I O N")
+local WordsRow = makeStepperRow(SettingsTab, 2, "words", "3")
+local DelayRow = makeStepperRow(SettingsTab, 3, "delay", "0ms")
 
 -- ============================================================
 -- SWITCH ROW HELPER  (label left, toggle right)
@@ -560,8 +743,15 @@ local function makeSwitchRow(parent, order, labelText, onColor, initialOn)
     return row, sw
 end
 
-local _, AutoSwitch     = makeSwitchRow(Win, 6, "auto-on", T.Green, true)
-local _, AllSwitch      = makeSwitchRow(Win, 7, "all messages", T.Accent, false)
+makeSectionLabel(SettingsTab, 4, "M O D E S")
+local _, AutoSwitch     = makeSwitchRow(SettingsTab, 5, "auto-on", T.Green, true)
+local _, AllSwitch      = makeSwitchRow(SettingsTab, 6, "all messages", T.Accent, false)
+
+makeSectionLabel(SettingsTab, 7, "P E R F O R M A N C E")
+local _, FpsBoostSwitch = makeSwitchRow(SettingsTab, 8, "fps booster", T.Red, false)
+
+makeSectionLabel(SettingsTab, 9, "A U D I O")
+local _, MusicSwitch = makeSwitchRow(SettingsTab, 10, "music", T.Accent, true)
 
 -- ============================================================
 -- RIDDLE POPUP (only shows while actively solving)
@@ -797,6 +987,81 @@ AllSwitch.btn.MouseButton1Click:Connect(function()
     AllSwitch:set(_allMessagesMode)
 end)
 
+-- ============================================================
+-- FPS BOOSTER
+-- Trims client-side rendering cost: disables Lighting post-effects
+-- (bloom/blur/sun rays/depth of field/color correction), turns off
+-- terrain decoration, and drops the graphics quality preset. Every
+-- original value is remembered so turning it back off restores the
+-- game's normal look exactly.
+-- ============================================================
+local _fpsBoostSaved = nil
+
+local function setFpsBoost(on)
+    local Lighting = game:GetService("Lighting")
+    local terrain = workspace:FindFirstChildOfClass("Terrain")
+
+    if on and not _fpsBoostSaved then
+        _fpsBoostSaved = {effects={}, globalShadows=Lighting.GlobalShadows}
+        for _,child in ipairs(Lighting:GetChildren()) do
+            if child:IsA("PostEffect") then
+                _fpsBoostSaved.effects[child] = child.Enabled
+                child.Enabled = false
+            end
+        end
+        Lighting.GlobalShadows = false
+
+        if terrain then
+            _fpsBoostSaved.terrainDecoration = terrain.Decoration
+            terrain.Decoration = false
+        end
+
+        pcall(function()
+            local gs = UserSettings():GetService("UserGameSettings")
+            _fpsBoostSaved.qualityLevel = gs.SavedQualityLevel
+            gs.SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel1
+        end)
+
+    elseif not on and _fpsBoostSaved then
+        for child,wasEnabled in pairs(_fpsBoostSaved.effects) do
+            if child and child.Parent then child.Enabled = wasEnabled end
+        end
+        Lighting.GlobalShadows = _fpsBoostSaved.globalShadows
+        if terrain and _fpsBoostSaved.terrainDecoration ~= nil then
+            terrain.Decoration = _fpsBoostSaved.terrainDecoration
+        end
+        pcall(function()
+            local gs = UserSettings():GetService("UserGameSettings")
+            if _fpsBoostSaved.qualityLevel then
+                gs.SavedQualityLevel = _fpsBoostSaved.qualityLevel
+            end
+        end)
+        _fpsBoostSaved = nil
+    end
+end
+
+FpsBoostSwitch.btn.MouseButton1Click:Connect(function()
+    local on = not FpsBoostSwitch.on
+    FpsBoostSwitch:set(on)
+    pcall(setFpsBoost, on)
+end)
+
+MusicSwitch.btn.MouseButton1Click:Connect(function()
+    local on = not MusicSwitch.on
+    MusicSwitch:set(on)
+    if on then
+        pcall(function()
+            if Music.TimePosition and Music.TimePosition > 0 and not Music.IsPlaying then
+                Music:Resume()
+            else
+                Music:Play()
+            end
+        end)
+    else
+        pcall(function() Music:Pause() end)
+    end
+end)
+
 WordsRow.minus.MouseButton1Click:Connect(function()
     _submitThreshold = math.max(1, _submitThreshold - 1)
     WordsRow.val.Text = tostring(_submitThreshold)
@@ -853,7 +1118,7 @@ local function appendToBox(text)
     refreshCounter()
 
     if _autoSubmit and _accumWords >= _submitThreshold then
-        task.delay((_submitDelayMs/1000) + jitter(0.08, SUBMIT_DELAY_JITTER), function()
+        task.delay((_submitDelayMs/1000) + jitter(0.01, SUBMIT_DELAY_JITTER), function()
             if box and box.Parent then
                 setStatus("submitting...", T.Accent)
                 box:ReleaseFocus(true) -- simulates pressing Enter
@@ -945,6 +1210,9 @@ local NOT_CODES = {
     SHOP=true, MENU=true, TRADE=true, TRADING=true, CLOSE=true, OPEN=true,
     -- reported false positives
     UNCLAIMED=true, GLOBAL=true, AND=true, SEND=true,
+    -- Studio/dev-console noise (e.g. "SetCreatorId" property labels
+    -- that show up as a single clean word and were slipping through)
+    SETCREATORID=true, CREATORID=true, CREATOR=true,
 }
 
 local MIN_CODE_LEN, MAX_CODE_LEN = 1, 18
@@ -988,6 +1256,9 @@ local BAD={
     "backpack","inventory","chatmain","leaderboard","hudgui",
     "systemmessage","joinmsg","leavemsg","tutorial","tooltip","loading",
     "quest","mission","eventlabel","gameevent","settings","shop","menu",
+    -- dev/debug-only labels that sometimes render into PlayerGui and
+    -- were being picked up as if they were real code drops
+    "creatorid","devconsole","debug","output","console",
 }
 local function classify(obj)
     local n=(obj.Name or ""):lower()
@@ -998,7 +1269,9 @@ end
 
 local function processGlobal(txt, sourceName)
     if not _enabled then return end
-    if not txt or type(txt)~="string" or #txt<2 then return end
+    -- allow single-character messages through too (single letter or
+    -- single digit codes), only bail on truly empty/invalid text
+    if not txt or type(txt)~="string" or #txt<1 then return end
 
     if _seen[txt] then return end
     _seen[txt]=true
@@ -1069,7 +1342,7 @@ local function watchLabel(obj)
 end
 
 playerGui.DescendantAdded:Connect(function(obj)
-    task.wait(jitter(0.04,0.5))
+    task.wait(jitter(0.005,0.5))
     if obj:IsA("TextLabel") then
         local txt=obj.Text or ""
         local sourceName = obj.Name .. " " .. ((obj.Parent and obj.Parent.Name) or "")
@@ -1077,7 +1350,8 @@ playerGui.DescendantAdded:Connect(function(obj)
 
         if passesGate then
             watchLabel(obj)
-            if #txt>1 then processGlobal(txt, sourceName) end
+            -- single-character labels now get processed too, not just >1
+            if #txt>=1 then processGlobal(txt, sourceName) end
         end
         obj:GetPropertyChangedSignal("Text"):Connect(function()
             local t=obj.Text or ""
@@ -1149,7 +1423,7 @@ task.spawn(function()
     }
     for _,step in ipairs(steps) do
         local target, label = step[1], step[2]
-        PctLbl.Text = label
+        PopLabel(PctLbl, PctLblScale, label)
         Tw(BarFill, TweenInfo.new(0.5 + math.random()*0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size=UDim2.new(target,0,1,0)})
         task.wait(0.55 + math.random()*0.4)
     end
@@ -1164,6 +1438,7 @@ task.spawn(function()
     Tw(BarFill, TweenInfo.new(0.4), {BackgroundTransparency=1})
     task.wait(0.6)
     LoadingScreen:Destroy()
+    if _spinnerConn then _spinnerConn:Disconnect() end
 
     -- reveal the HUD with a soft pop-in
     Win.Visible = true
@@ -1172,6 +1447,14 @@ task.spawn(function()
     scale.Parent = Win
     Tw(scale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale=1})
 
-    -- start music once the HUD is up
-    pcall(function() Music:Play() end)
+    -- start music once the HUD is up, then auto-stop it 5s later
+    if MusicSwitch.on then
+        pcall(function() Music:Play() end)
+        task.delay(5, function()
+            if Music and Music.IsPlaying then
+                pcall(function() Music:Stop() end)
+                MusicSwitch:set(false)
+            end
+        end)
+    end
 end)
