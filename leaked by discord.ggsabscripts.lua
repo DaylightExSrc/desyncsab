@@ -28,6 +28,13 @@ local _accumWords       = 0
 
 local _consoleLogs = {} -- timing entries, newest first, capped at 5
 
+local _historyRows    = {} -- Sammy message history TextLabel instances, newest first, capped at 10
+local _historyCounter = 0
+local _consoleRows    = {} -- submit-timing TextLabel instances, newest first, capped at 5
+local _consoleCounter = 0
+local HISTORY_MAX = 10
+local CONSOLE_MAX = 5
+
 local SUBMIT_DELAY_JITTER = 0.01
 
 local function jitter(base, spreadPct)
@@ -458,7 +465,7 @@ TabList.Parent=TabBar
 
 local function makeTabButton(text, order)
     local b=Instance.new("TextButton")
-    b.Size=UDim2.new(0.5,-3,1,0)
+    b.Size=UDim2.new(1/3,-4,1,0)
     b.BackgroundColor3=T.Panel
     b.BackgroundTransparency=PANEL_TRANSPARENCY
     b.AutoButtonColor=false
@@ -475,6 +482,7 @@ local function makeTabButton(text, order)
 end
 local MainTabBtn     = makeTabButton("main", 1)
 local SettingsTabBtn = makeTabButton("settings", 2)
+local LogTabBtn      = makeTabButton("log", 3)
 
 local MainTab=Instance.new("Frame")
 MainTab.Size=UDim2.new(1,0,0,0)
@@ -501,15 +509,30 @@ SettingsTabList.FillDirection=Enum.FillDirection.Vertical
 SettingsTabList.Padding=UDim.new(0,14)
 SettingsTabList.Parent=SettingsTab
 
+local LogTab=Instance.new("Frame")
+LogTab.Size=UDim2.new(1,0,0,0)
+LogTab.AutomaticSize=Enum.AutomaticSize.Y
+LogTab.BackgroundTransparency=1
+LogTab.LayoutOrder=3
+LogTab.Visible=false
+LogTab.ZIndex=101
+LogTab.Parent=Win
+local LogTabList=Instance.new("UIListLayout")
+LogTabList.FillDirection=Enum.FillDirection.Vertical
+LogTabList.Padding=UDim.new(0,10)
+LogTabList.Parent=LogTab
+
 local function selectTab(which)
-    local mainOn = which=="main"
-    MainTab.Visible = mainOn
-    SettingsTab.Visible = not mainOn
-    Tw(MainTabBtn, F, {BackgroundTransparency = mainOn and (PANEL_TRANSPARENCY-0.35) or PANEL_TRANSPARENCY, TextColor3 = mainOn and T.Accent or T.Dim})
-    Tw(SettingsTabBtn, F, {BackgroundTransparency = (not mainOn) and (PANEL_TRANSPARENCY-0.35) or PANEL_TRANSPARENCY, TextColor3 = (not mainOn) and T.Accent or T.Dim})
+    MainTab.Visible = which=="main"
+    SettingsTab.Visible = which=="settings"
+    LogTab.Visible = which=="log"
+    Tw(MainTabBtn, F, {BackgroundTransparency = which=="main" and (PANEL_TRANSPARENCY-0.35) or PANEL_TRANSPARENCY, TextColor3 = which=="main" and T.Accent or T.Dim})
+    Tw(SettingsTabBtn, F, {BackgroundTransparency = which=="settings" and (PANEL_TRANSPARENCY-0.35) or PANEL_TRANSPARENCY, TextColor3 = which=="settings" and T.Accent or T.Dim})
+    Tw(LogTabBtn, F, {BackgroundTransparency = which=="log" and (PANEL_TRANSPARENCY-0.35) or PANEL_TRANSPARENCY, TextColor3 = which=="log" and T.Accent or T.Dim})
 end
 MainTabBtn.MouseButton1Click:Connect(function() selectTab("main") end)
 SettingsTabBtn.MouseButton1Click:Connect(function() selectTab("settings") end)
+LogTabBtn.MouseButton1Click:Connect(function() selectTab("log") end)
 selectTab("main")
 
 -- ============================================================
@@ -670,6 +693,70 @@ end
 makeSectionLabel(SettingsTab, 1, "D E T E C T I O N")
 local WordsRow = makeStepperRow(SettingsTab, 2, "words", "3")
 local DelayRow = makeStepperRow(SettingsTab, 3, "delay", "0ms")
+
+-- ============================================================
+-- SCROLLING LOG LIST HELPER  (used by both the Sammy message
+-- history and the submit-timing console below)
+-- ============================================================
+local function makeLogList(parent, order, headerText, height)
+    makeSectionLabel(parent, order, headerText)
+    local scroll=Instance.new("ScrollingFrame")
+    scroll.Size=UDim2.new(1,0,0,height)
+    scroll.BackgroundColor3=T.Panel
+    scroll.BackgroundTransparency=PANEL_TRANSPARENCY
+    scroll.BorderSizePixel=0
+    scroll.ScrollBarThickness=3
+    scroll.ScrollBarImageColor3=T.Accent
+    scroll.CanvasSize=UDim2.new(0,0,0,0)
+    scroll.AutomaticCanvasSize=Enum.AutomaticSize.Y
+    scroll.LayoutOrder=order+1
+    scroll.ZIndex=101
+    scroll.Parent=parent
+    Corner(scroll,10)
+    Stroke(scroll,T.Border,1)
+    Pad(scroll,6,6,8,8)
+    local list=Instance.new("UIListLayout")
+    list.Padding=UDim.new(0,3)
+    list.SortOrder=Enum.SortOrder.LayoutOrder
+    list.Parent=scroll
+    return scroll
+end
+
+-- adds a row to a log list, keeping newest on top and capping total
+-- entries — rows is the tracking table (_historyRows/_consoleRows),
+-- counter is a byref-style upvalue incrementer handled by the caller
+local function pushLogRow(scroll, rows, maxEntries, layoutOrder, text, color)
+    local row=Instance.new("TextLabel")
+    row.Size=UDim2.new(1,0,0,13)
+    row.BackgroundTransparency=1
+    row.Text=text
+    row.TextSize=9.5
+    row.Font=Enum.Font.GothamMedium
+    row.TextColor3=color or T.Dim
+    row.TextXAlignment=Enum.TextXAlignment.Left
+    row.TextTruncate=Enum.TextTruncate.AtEnd
+    row.LayoutOrder=layoutOrder
+    row.ZIndex=102
+    row.Parent=scroll
+    table.insert(rows, 1, row)
+    if #rows > maxEntries then
+        local old = table.remove(rows)
+        if old then old:Destroy() end
+    end
+end
+
+local HistoryScroll = makeLogList(LogTab, 1, "S A M M Y ' S   M E S S A G E S", 90)
+local ConsoleScroll = makeLogList(LogTab, 3, "S U B M I T   C O N S O L E", 70)
+
+local function addSammyHistory(text)
+    _historyCounter -= 1
+    pushLogRow(HistoryScroll, _historyRows, HISTORY_MAX, _historyCounter, text, T.Dim)
+end
+
+local function addConsoleEntry(text, color)
+    _consoleCounter -= 1
+    pushLogRow(ConsoleScroll, _consoleRows, CONSOLE_MAX, _consoleCounter, text, color or T.Accent)
+end
 
 -- ============================================================
 -- SWITCH ROW HELPER  (label left, toggle right)
@@ -1118,10 +1205,14 @@ local function appendToBox(text)
     refreshCounter()
 
     if _autoSubmit and _accumWords >= _submitThreshold then
+        local scheduledAt = os.clock()
+        local submittedCode = _lastCode
         task.delay((_submitDelayMs/1000) + jitter(0.01, SUBMIT_DELAY_JITTER), function()
             if box and box.Parent then
                 setStatus("submitting...", T.Accent)
                 box:ReleaseFocus(true) -- simulates pressing Enter
+                local elapsedMs = math.floor((os.clock()-scheduledAt)*1000 + 0.5)
+                addConsoleEntry(elapsedMs.."ms · "..(submittedCode or "?"), T.Green)
                 task.delay(0.3, applyEnabledVisual)
             end
             _accumWords = 0
@@ -1276,6 +1367,8 @@ local function processGlobal(txt, sourceName)
     if _seen[txt] then return end
     _seen[txt]=true
     task.delay(jitter(20,0.2), function() _seen[txt]=nil end)
+
+    addSammyHistory(txt)
 
     if isRiddle(txt) then
         showRiddle("solving...",T.Dim)
